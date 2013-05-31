@@ -139,31 +139,41 @@ containing a value of this type.
         public static final int activity_vertical_margin=0x7f060001;
     }
     public static final class drawable {
-        public static final int ic_launcher=0x7f020000;
+        public static final int ic_comment=0x7f020000;
+        public static final int ic_launcher=0x7f020001;
+        public static final int ic_mark_dnvt=0x7f020002;
+        public static final int ic_mark_upvt=0x7f020003;
+        public static final int ic_recl=0x7f020004;
+        public static final int ic_recl_batt=0x7f020005;
+        public static final int ic_recl_light=0x7f020006;
+        public static final int ic_trash=0x7f020007;
+        public static final int ic_unknown=0x7f020008;
     }
     public static final class id {
-        public static final int action_settings=0x7f04000a;
-        public static final int button1=0x7f040008;
+        public static final int action_settings=0x7f04000c;
+        public static final int action_share=0x7f04000b;
         public static final int hybrid=0x7f040004;
-        public static final int like=0x7f040006;
+        public static final int imageView1=0x7f040007;
+        public static final int imageView2=0x7f040009;
         public static final int map=0x7f040005;
         public static final int none=0x7f040000;
         public static final int normal=0x7f040001;
-        public static final int notlike=0x7f040007;
         public static final int satellite=0x7f040002;
         public static final int terrain=0x7f040003;
-        public static final int textView1=0x7f040009;
+        public static final int textDnvotes=0x7f04000a;
+        public static final int textTitle=0x7f040006;
+        public static final int textUpvotes=0x7f040008;
     }
     public static final class layout {
         public static final int activity_main=0x7f030000;
-        public static final int menu=0x7f030001;
-        public static final int news_marker=0x7f030002;
+        public static final int news_marker=0x7f030001;
     }
     public static final class menu {
         public static final int main=0x7f080000;
     }
     public static final class string {
         public static final int action_settings=0x7f050012;
+        public static final int action_share=0x7f050013;
         public static final int app_name=0x7f050011;
         /**   Title for notification shown when GooglePlayServices is unavailable [CHAR LIMIT=70] 
          */
@@ -227,7 +237,7 @@ containing a value of this type.
         find the service-side assets. [CHAR LIMIT=25] 
          */
         public static final int common_signin_button_text_long=0x7f05000d;
-        public static final int hello_world=0x7f050013;
+        public static final int hello_world=0x7f050014;
     }
     public static final class style {
         /** 

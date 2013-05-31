@@ -1,5 +1,11 @@
 package com.example.unilink1;
 
+import com.google.android.gms.maps.model.BitmapDescriptor;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+
+import android.view.LayoutInflater;
+import android.view.View;
+
 public class BasePin {
 
 	private long uid = 0;
@@ -33,5 +39,13 @@ public class BasePin {
 	public double getLon() {
 		return this.lon;
 	}
+	
+	public View getView(LayoutInflater inflater) {
+		return null;
+	}
 
+	public BitmapDescriptor getResourceIcon() {
+		return BitmapDescriptorFactory.fromResource(
+				R.drawable.ic_unknown);
+	}
 }

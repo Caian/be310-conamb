@@ -8,21 +8,38 @@ import com.google.android.gms.maps.model.Marker;
 
 public class PinContentManager implements InfoWindowAdapter {
 
-	private LayoutInflater inflater;
+	// Variáveis -------------------------------------------
 	
+	private LayoutInflater inflater;
+		
+	// Métodos ---------------------------------------------
+	
+	// -----------------------------------------------------
+	// Construtor
+	// -----------------------------------------------------
+	public PinContentManager(LayoutInflater inflater) {
+		this.inflater = inflater;
+	}
+	
+	
+	// -----------------------------------------------------
+	// Gera o balão para um marcador
+	// -----------------------------------------------------
 	@Override
 	public View getInfoContents(Marker arg0) {
-		return inflater.inflate(R.layout.news_marker, null);
-		//return null;
+		//return UnilinkDB.getDatabase().getPin(arg0).getView(this.inflater);
+		return null;
+		//View v = inflater.inflate(R.layout.news_marker, null);
+		//return v;
 	}
 
+	
+	// -----------------------------------------------------
+	// Não lembro o que isso faz
+	// -----------------------------------------------------
 	@Override
 	public View getInfoWindow(Marker arg0) {
 		// TODO Auto-generated method stub
 		return null;
-	}
-	
-	public PinContentManager(LayoutInflater inflater) {
-		this.inflater = inflater;
 	}
 }

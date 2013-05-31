@@ -1,15 +1,24 @@
 package com.example.unilink1;
 
+import com.google.android.gms.maps.model.BitmapDescriptor;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+
+import android.view.LayoutInflater;
+import android.view.View;
+
 public class NewsPin extends BasePin {
 	private String name = "";
 	private String text = "";
-	private int votes = 0;
+	private long upvotes = 0;
+	private long downvotes = 0;
 	
-	public NewsPin (BasePin pin, String name, String text, int votes) {
-		super(pin.getUid(), pin.getDate(), pin.getLat(), pin.getLon());
+	public NewsPin (long uid, long date, double lat, double lon, 
+			String name, String text, long upvotes, long dnvotes) {
+		super(uid, date, lat, lon);
 		this.name = name;
 		this.text = text;
-		this.votes = votes;
+		this.upvotes = upvotes;
+		this.downvotes = dnvotes;
 	}
 	
 	public String getName() {
@@ -20,7 +29,22 @@ public class NewsPin extends BasePin {
 		return this.text;
 	}
 	
-	public int getVotes() {
-		return this.votes;
+	public long getUpVotes() {
+		return this.upvotes;
+	}
+	
+	public long getDownVotes() {
+		return this.downvotes;
+	}
+	
+	@Override
+	public View getView(LayoutInflater inflater) {
+		return inflater.inflate(R.layout.news_marker, null);
+	}
+	
+	@Override
+	public BitmapDescriptor getResourceIcon() {
+		return BitmapDescriptorFactory.fromResource(
+				R.drawable.ic_comment);
 	}
 }
