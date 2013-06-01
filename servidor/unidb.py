@@ -30,8 +30,8 @@ class UnilinkDBVote(IsDescription):
 	dir = Int32Col()
 
 class UnilinkDBUser(IsDescription):
-	name = StringCol(32)
-	phash = StringCol(128)
+	name = StringCol(64)
+	passw = StringCol(32)
 	uus = UInt32Col()
 
 class UnilinkDatabase:
@@ -63,13 +63,29 @@ class UnilinkDatabase:
 			elif i == self.uidref:
 				print 'Warning: UID duplicate detected in ntable'
 
+	def validate_user(self, username, password):
+		q = '(name == \'' + username + '\') & (passw == \'' + password + '\')'
+		ru = self.utable.where(q)
+
+		uus = -1
+		uuc = 0
+		for user in ru:
+			uuc += 1
+			if uus == -1:
+				uus = user['uus']
+		if uuc > 1:
+				print 'Warning: User duplicate detected in utable'
+		if uus == 1:
+				print 'Error: Blocked connection as administrator'
+				uus = -1
+		return uus
+
 	def find_quadrant(self, latq, lonq):
 		latu = (latq[0] + (latq[1] + 2) / 60.0) - 90.0
 		lonu = (lonq[0] + (lonq[1] + 2) / 60.0) - 180.0
 		latl = (latq[0] + (latq[1] - 2) / 60.0) - 90.0
 		lonl = (lonq[0] + (lonq[1] - 2) / 60.0) - 180.0
 		q = '(lat > '+str(latl)+') & (lat < '+str(latu)+') & (lon > '+str(lonl)+') & (lon < '+str(lonu)+')'
-		print q
 		rm = self.mtable.where(q)
 		rn = self.ntable.where(q)
 		return [rm, rn]

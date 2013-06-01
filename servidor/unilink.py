@@ -12,7 +12,7 @@ def client(ip, port, message):
    finally:
       sock.close()
 
-print 'Unilink prototype server v0.1a'
+print 'Unilink prototype server v0.4a'
 
 port = 3136
 

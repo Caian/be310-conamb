@@ -6,6 +6,7 @@ from tables import *
 db = tables.openFile("db.h5", mode = "r+")
 mtable = db.root.data.markers
 ntable = db.root.data.news
+utable = db.root.data.users
 
 marker = mtable.row
 
@@ -66,3 +67,18 @@ news['dnvt'] = 23
 
 news.append()
 ntable.flush()
+
+user = utable.row
+
+user['name'] = 'ademir@admin.adm'
+user['passw'] = '4d3/\\/\\iN'
+user['uus'] = 1
+
+user.append()
+
+user['name'] = 'caian@sim.com'
+user['passw'] = '123456'
+user['uus'] = 2
+
+user.append()
+utable.flush()
