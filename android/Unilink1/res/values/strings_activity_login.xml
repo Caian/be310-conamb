@@ -1,0 +1,18 @@
+<resources>
+
+    <string name="title_activity_login">Conectar-se</string>
+
+    <!-- Strings related to login -->
+    <string name="prompt_email">Email</string>
+    <string name="prompt_password">Senha</string>
+    <string name="action_sign_in_register"><b>Entrar</b> ou registrar-se</string>
+    <string name="action_sign_in_short">Entrar</string>
+    <string name="action_forgot_password">Recuperar senha</string>
+    <string name="login_progress_signing_in">Entrando&#8230;</string>
+    <string name="error_invalid_email">O email fornecido é inválido</string>
+    <string name="error_invalid_password">A senha é muito pequena</string>
+    <string name="error_incorrect_password">A senha está incorreta</string>
+    <string name="error_no_connect">Não foi possível conectar-se com o servidor</string>
+    <string name="error_field_required">Esse campo é obrigatório</string>
+
+</resources>

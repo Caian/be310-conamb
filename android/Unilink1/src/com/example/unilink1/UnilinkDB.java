@@ -1,11 +1,20 @@
 package com.example.unilink1;
 
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintStream;
+import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Vector;
 import com.google.android.gms.maps.model.Marker;
-import com.google.android.gms.maps.model.MarkerOptions;
 
+import android.content.Context;
 import android.os.AsyncTask;
+import android.util.Base64;
 
 public class UnilinkDB {
 	
@@ -21,10 +30,13 @@ public class UnilinkDB {
 	
 	// Variáveis -------------------------------------------
 	
+	private final String USERFILE = "user.info";
+	
 	private HashMap<Marker, BasePin> pins;
 	
 	private String username = "";
 	private String password = "";
+	private Boolean validated = false;
 	private TCPClient client;
 	
 	// Métodos ---------------------------------------------
@@ -45,14 +57,45 @@ public class UnilinkDB {
 	public void setUser(String u, String p) {
 		this.username = u;
 		this.password = p;
+		this.validated = false;
 	}
-
+	
 	
 	// -----------------------------------------------------
-	// Coloca o cabeçalho nas mensagens
+	// Carrega o usuário do armazenamento interno
 	// -----------------------------------------------------
-	private String messageHead() {
-		return ""; //this.username + "\n" + this.password + "\n";
+	public void loadUserFromStorage(Context c) {
+		try {
+			FileInputStream fos = c.openFileInput(USERFILE);
+			InputStreamReader s = new InputStreamReader(fos);
+			BufferedReader b = new BufferedReader(s);
+			String u = b.readLine();
+			String p = b.readLine();
+			if (u != null && !u.isEmpty() && p != null && !p.isEmpty()) {
+				this.username = u;
+				this.password = p;
+			}
+			b.close();
+		} catch (FileNotFoundException e) {
+			// Nada...
+		} catch (IOException e) {
+			// Hue?
+		}
+	}
+	
+	// -----------------------------------------------------
+	// Salva o usuário no armazenamento interno
+	// -----------------------------------------------------
+	public void saveUserToStorage(Context c) {
+		try {
+			FileOutputStream fos = c.openFileOutput(USERFILE, Context.MODE_PRIVATE);
+			PrintStream s = new PrintStream(fos);
+			s.println(this.username);
+			s.println(this.password);
+			s.close();
+		} catch (FileNotFoundException e) {
+			// Nada...
+		}
 	}
 	
 	
@@ -81,16 +124,36 @@ public class UnilinkDB {
 		// Up we go...
 		LongUpdateNearPins updater = new LongUpdateNearPins();
 		updater.setListener(listener);
-		updater.execute(messageHead() + "NEAR" + lats + lons);
+		updater.execute("NEAR" + lats + lons);
 	}
 
+	
+	// -----------------------------------------------------
+	// Converte a string do formato padrão para o sem 
+	// espaços 
+	// -----------------------------------------------------
+	public String encodeString(String s) {
+		try {
+			s = Base64.encodeToString(s.getBytes("UTF-8"), 
+				Base64.URL_SAFE | Base64.NO_WRAP);
+		} catch (UnsupportedEncodingException e) {
+			s = "";
+		}
+		return s;
+	}
+	
 	
 	// -----------------------------------------------------
 	// Converte a string do formato sem espaços para o 
 	// padrão
 	// -----------------------------------------------------
 	public String decodeString(String s) {
-		return s.replace("\\s", " ").replace("\\\\", "\\");
+		try {
+			s = new String(Base64.decode(s, Base64.URL_SAFE), "UTF-8");
+		} catch (UnsupportedEncodingException e) {
+			s = "";
+		}
+		return s;
 	}
 
 	
@@ -164,6 +227,76 @@ public class UnilinkDB {
 	
 	
 	// -----------------------------------------------------
+	// Valida o usuário e senha
+	// -----------------------------------------------------
+	public Boolean hasUser() {
+		if (this.username.isEmpty() || this.password.isEmpty())
+			return false;
+		
+		return true;
+	}
+	
+	
+	// -----------------------------------------------------
+	// Valida o usuário e senha
+	// -----------------------------------------------------
+	public void validateUser() {
+		
+		if (!hasUser())
+			return;
+		
+		new LongValidateUser().execute();
+	}
+	
+	
+	// -----------------------------------------------------
+	// Valida o usuário e senha
+	// -----------------------------------------------------
+	public Integer validateUserB() {
+		
+		if (!hasUser())
+			return -1;
+		
+		synchronized (client) {
+		
+			if (!client.open())
+				return -2;
+			
+			// Monta a mensagem
+			client.sendMessage("VALU" + encodeString(this.username) + 
+					" " + encodeString(this.password));
+			
+			int code;
+			
+			while(true) {
+				String response = client.readLine();
+				if (response == null)
+					return -1;
+				if (response.startsWith("UUSID")) {
+					this.validated = true;
+					code = 0;
+					break;
+				} else if (response.compareTo("UFAIL") == 0) {
+					code = -3;
+					break;
+				}
+			}
+			
+			client.close();
+			return code;
+		}
+	}
+	
+	
+	// -----------------------------------------------------
+	// Verifica se o usuário foi validado pelo servidor
+	// -----------------------------------------------------
+	public Boolean isValidated() {
+		return this.validated;
+	}
+	
+	
+	// -----------------------------------------------------
 	// Tarefa assíncrona de baixar novos pinos
 	// -----------------------------------------------------
 	public class LongUpdateNearPins extends AsyncTask<String, Integer, Boolean> {
@@ -171,7 +304,6 @@ public class UnilinkDB {
 		// Variáveis -------------------------------------------
 		
 		private Vector<BasePin> pins = new Vector<BasePin>();
-		private Vector<Marker> markers = new Vector<Marker>(); 
 		private PinListener listener = null;
 		
 		// Métodos ---------------------------------------------
@@ -179,34 +311,44 @@ public class UnilinkDB {
 		@Override
 		protected Boolean doInBackground(String... arg0) {
 			
-			if (!client.open())
-				return false;
+			synchronized (client) {
 			
-			// Monta a mensagem
-			client.sendMessage(arg0[0]);
-			
-			String response;
-			while ((response = client.readLine()).compareTo("EORQ") != 0) {
-				BasePin p = parseNearResponse(response);
-				if (p != null) pins.add(p);
-			}
-			
-			// Filter
-			
-			for (int i = 0; i < pins.size(); i++) {
-				client.sendMessage(String.format("GETD%d",pins.get(i).getUid()));
-				BasePin p = parseGetResponse(client.readLine());
-				if (p == null) {
-					pins.remove(i--);
+				if (!client.open())
+					return false;
+				
+				// Monta a mensagem
+				client.sendMessage(arg0[0]);
+				
+				String response;
+				while (true) {
+					response = client.readLine();
+					if (response == null)
+						break;
+					if (response.compareTo("EORQ") == 0)
+						break;
+					BasePin p = parseNearResponse(response);
+					if (p != null) pins.add(p);
 				}
-				else {
-					pins.set(i, p);
+				
+				// Filter
+				
+				for (int i = 0; i < pins.size(); i++) {
+					client.sendMessage(String.format("GETD%d",pins.get(i).getUid()));
+					response = client.readLine();
+					BasePin p = null;
+					if (response != null)
+						p = parseGetResponse(response);
+					if (p == null) {
+						pins.remove(i--);
+					}
+					else {
+						pins.set(i, p);
+					}
 				}
+				
+				client.close();
+				return true;
 			}
-			
-			client.close();
-			
-			return true;
 		}
 		
 		public void setListener(PinListener listener) {
@@ -216,9 +358,33 @@ public class UnilinkDB {
 
 		@Override
 		protected void onPostExecute(Boolean result) {
+			
+			if (!result)
+				return;
+			
 			if (this.listener != null) {
 				for (int i = 0; i < this.pins.size(); i++)
 					listener.OnNewPin(this.pins.get(i));
+			}
+		}
+	}
+	
+	
+	// -----------------------------------------------------
+	// Tarefa assíncrona de validar usuário
+	// -----------------------------------------------------
+	public class LongValidateUser extends AsyncTask<Void, Void, Integer> {
+		@Override
+		protected Integer doInBackground(Void... params) {
+			return UnilinkDB.getDatabase().validateUserB();
+		}
+
+		@Override
+		protected void onPostExecute(final Integer success) {
+			if (success == 0) {
+				validated = true;
+			} else {
+				validated = false;
 			}
 		}
 	}
