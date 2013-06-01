@@ -141,32 +141,95 @@ class UnilinkDatabase:
 		return uid
 
 	def up_vote(self, uus, uid, val):
+		count = 0
 		self.uidlock.acquire()
-		#try:
-		#	votedir = 0
-		#	voterow = None
-		#	for x in self.vtable.where('(uid =='+str(uid)+')&(uus=='+str(uus)+')')):
-		#		votedir = x['dir']
-		#		voterow = x
-		#	if votedir == 1:
-		#		print 'Blocked duplicated upvote from'
+		###########################################
 		try:
+			votecount = 0
+			votedir = 0
+			voterow = None
+			voteredir = False
+			for x in self.vtable.where('(uid =='+str(uid)+')&(uus=='+str(uus)+')'):
+				votecount += 1
+				if voterow == None:
+					voterow = x
+					if x['dir'] == 1:
+						print 'Blocked duplicated dnvote from user'
+						self.uidlock.release()
+						return
+					else:
+						voteredir = True
+						voterow['dir'] = 1
+						voterow.update()
+
+			if votecount > 1:
+				print 'Warning: Multiple references to vote in vtable'
+			elif votecount == 0:
+				voterow = self.vtable.row
+				voterow['uid'] = uid
+				voterow['uus'] = uus
+				voterow['dir'] = 1
+				voterow.append()
+				self.vtable.flush()
+		###########################################3
 			for row in self.ntable.where('uid == ' + str(uid)):
+				count += 1
 				row['upvt'] += val
+				if voteredir:
+					row['dnvt'] -= val
 				row.update()
 		except:
 			print 'Exception occurred during news UPVT'
 		self.uidlock.release()
+		###########################################3
+		if count > 1:
+			print 'Warning: Multiple references to uid in ntable'
+		return count
 
 	def dn_vote(self, uus, uid, val):
+		count = 0
 		self.uidlock.acquire()
+		###########################################
 		try:
+			votecount = 0
+			votedir = 0
+			voterow = None
+			voteredir = False
+			for x in self.vtable.where('(uid =='+str(uid)+')&(uus=='+str(uus)+')'):
+				votecount += 1
+				if voterow == None:
+					voterow = x
+					if x['dir'] == -1:
+						print 'Blocked duplicated dnvote from user'
+						self.uidlock.release()
+						return
+					else:
+						voteredir = True
+						voterow['dir'] = -1
+						voterow.update()
+
+			if votecount > 1:
+				print 'Warning: Multiple references to vote in vtable'
+			elif votecount == 0:
+				voterow = self.vtable.row
+				voterow['uid'] = uid
+				voterow['uus'] = uus
+				voterow['dir'] = -1
+				voterow.append()
+				self.vtable.flush()
+		###########################################3
 			for row in self.ntable.where('uid == ' + str(uid)):
+				count += 1
 				row['dnvt'] += val
+				if voteredir:
+					row['upvt'] -= val
 				row.update()
 		except:
 			print 'Exception occurred during news DNVT'
 		self.uidlock.release()
+		if count > 1:
+			print 'Warning: Multiple references to uid in ntable'
+		return count
 
 singleton = None
 

@@ -34,6 +34,10 @@ class UnilinkClient:
 				self.set_dnvote(data)
 			elif head == 'VALU':
 				self.validate_user(data)
+			#elif head == 'POSM':
+			#	self.post_marker(data)
+			#elif head == 'POSN':
+			#	self.post_news(data)
 			#cur_thread = threading.current_thread()
 			#response = "{}: {}".format(cur_thread.name, data)
 			#self.request.sendall(response)
@@ -44,28 +48,41 @@ class UnilinkClient:
 			return None
 		else:
 			return message[0:4]
-	
-	def validate_user(self, message):
+
+	def extract_auth(self, message):
 		tokens = message[4:].split(' ');
-		if (len(tokens) != 2):
+		if (len(tokens) < 2):
+			print 'Malformed authentication header'
+			return None
+		try:	
+			username = base64.urlsafe_b64decode(tokens[0].strip())
+			password = base64.urlsafe_b64decode(tokens[1].strip())
+			return [message[4+len(tokens[0])+1+len(tokens[1]):], [username, password]]
+		except:
+			print 'Error processing authentication header'
+			return None
+
+	def validate_user(self, message):
+		r = self.extract_auth(message)
+		if r == None or len(r[0]) > 0:
 			print 'Malformed VALU request from client', self.addr
 			return
 		try:
 			print 'Received VALU request from client', self.addr
-			username = base64.urlsafe_b64decode(tokens[0].strip())
-			password = base64.urlsafe_b64decode(tokens[1].strip())
+			username = r[1][0]
+			password = r[1][1]
+			db = unidb.get_database()
+			query = db.validate_user(username, password)
+			print 'Queried VALU data for client', self.addr
+			if query > 0:
+				response = 'UUSID '+str(query)+'\n'
+			else:
+				response = 'UFAIL\n'
+			print 'Sending', response.strip(), 'to client', self.addr
+			self.request.sendall(response)
+			print 'VALU request complete'
 		except:
 			print 'Error processing VALU request from client', self.addr
-		db = unidb.get_database()
-		query = db.validate_user(username, password)
-		print 'Queried VALU data for client', self.addr
-		if query > 0:
-			response = 'UUSID '+str(query)+'\n'
-		else:
-			response = 'UFAIL\n'
-		print 'Sending', response.strip(), 'to client', self.addr
-		self.request.sendall(response)
-		print 'VALU request complete'
 		
 
 	def update_location(self, message):
@@ -117,35 +134,65 @@ class UnilinkClient:
 			print 'Error processing GETD request from client', self.addr
 
 	def set_upvote(self, message):
+		r = self.extract_auth(message)
+		if r == None or len(r[0]) == 0:
+			print 'Malformed UPVT request from client', self.addr
+			return
 		try:
-			uid = int(message[4:])
+			print 'Received UPVT request from client', self.addr
+			username = r[1][0]
+			password = r[1][1]
+			uid = int(r[0][1:])
 		except:
 			print 'Malformed UPVT request from client', self.addr
 		try:
 			db = unidb.get_database()
-			db.up_vote(0, uid, 1)
+			uus = db.validate_user(username, password)
+			if uus <= 0:
+				print 'Invalid authentication from client', self.addr
+				return
+			count = db.up_vote(uus, uid, 1)
 		except:
 			print 'Error processing UPVT request from client', self.addr
+			return
 		try:
-			print 'Sending update to client', self.addr, '...'
-			self.update_uid('GETD'+str(uid))
+			if count == 0:
+				print 'News not found', self.addr
+			else:
+				print 'Sending update to client', self.addr, '...'
+				self.update_uid('GETD'+str(uid))
 		except:
 			print 'Error sending update to client', self.addr
 		print 'UPVT request complete'
 	
 	def set_dnvote(self, message):
+		r = self.extract_auth(message)
+		if r == None or len(r[0]) == 0:
+			print 'Malformed DNVT request from client', self.addr
+			return
 		try:
-			uid = int(message[4:])
+			print 'Received DNVT request from client', self.addr
+			username = r[1][0]
+			password = r[1][1]
+			uid = int(r[0][1:])
 		except:
 			print 'Malformed DNVT request from client', self.addr
+			return
 		try:
 			db = unidb.get_database()
-			db.dn_vote(0, uid, 1)
+			uus = db.validate_user(username, password)
+			if uus <= 0:
+				print 'Invalid authentication from client', self.addr
+				return
 		except:
 			print 'Error processing DNVT request from client', self.addr
+		count = db.dn_vote(uus, uid, 1)
 		try:
-			print 'Sending update to client', self.addr
-			self.update_uid('GETD'+str(uid))
+			if count == 0:
+				print 'News not found', self.addr
+			else:
+				print 'Sending update to client', self.addr
+				self.update_uid('GETD'+str(uid))
 		except:
 			print 'Error sending update to client', self.addr
 		print 'DNVT request complete'
