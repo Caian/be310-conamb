@@ -9,8 +9,14 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+
+import android.app.AlertDialog;
+import android.app.AlertDialog.Builder;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -29,6 +35,13 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 	private LocationManager locationManager;
 	private Location location;
 	private Boolean autoMove = true;
+	
+	private final int LOGIN_CODE = 2;
+	private final int LOGIN_REDIRECT = 2 << 8;
+	private final int SHARE_CODE = 3;
+	private final int SHARE_REDIRECT = 3 << 8;
+	private final int SETTINGS_CODE = 4;
+	private final int SETTINGS_REDIRECT = 4 << 8;
 	
 	// Métodos ---------------------------------------------
 	
@@ -59,8 +72,11 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 	    	moveToLocation();
 	    }
 	    
-	    UnilinkDB.getDatabase().updateNear(
-	    		-23.19653095677495, -46.88130693510175, this);
+	    UnilinkDB db = UnilinkDB.getDatabase();
+	    db.updateNear(-23.19653095677495, -46.88130693510175, this);
+	    db.loadUserFromStorage(this);
+	    db.validateUser();
+	   
 	}
 
 	
@@ -128,9 +144,45 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 	// -----------------------------------------------------
 	// 
 	// -----------------------------------------------------
-	public void takePicture() {
-		Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-	    startActivityForResult(takePictureIntent, 0);
+	public void doLogin(int redirect) {
+		Intent intent = new Intent(this, LoginActivity.class);
+		startActivityForResult(intent, LOGIN_CODE | redirect);
+	}
+	
+	
+	// -----------------------------------------------------
+	// 
+	// -----------------------------------------------------
+	public void doSettings() {
+		Intent intent = new Intent(this, SettingsActivity.class);
+		startActivity(intent);
+	}
+	
+	
+	// -----------------------------------------------------
+	// 
+	// -----------------------------------------------------
+	public void doShare() {
+		Intent intent = new Intent(this, ShareActivity.class);
+		startActivity(intent);
+	}
+
+	
+	// -----------------------------------------------------
+	// 
+	// -----------------------------------------------------
+	public void doRedirect(int redirectCode, int newRedirect) {
+		switch (redirectCode & (0xFF << 8)) {
+		case LOGIN_REDIRECT:
+			doLogin(newRedirect);
+			break;
+		case SHARE_REDIRECT:
+			doShare();
+			break;
+		case SETTINGS_REDIRECT:
+			doSettings();
+			break;
+		}
 	}
 	
 	
@@ -139,12 +191,18 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 	// -----------------------------------------------------
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
-	    // Handle item selection
 	    switch (item.getItemId()) {
 	    case R.id.action_share:
-	    	takePicture();
+	    	UnilinkDB db = UnilinkDB.getDatabase();
+	    	
+	    	if (!db.isValidated()) {
+	    		doLogin(SHARE_REDIRECT);
+	    	} else {
+	    		doShare();
+	    	}
 	        return true;
 	    case R.id.action_settings:
+	    	doSettings();
 	        return true;
 	    default:
 	        return super.onOptionsItemSelected(item);
@@ -177,5 +235,41 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 	@Override
 	public Marker OnUpdatePin(BasePin p) {
 		return null;
+	}
+
+
+	// -----------------------------------------------------
+	// 
+	// -----------------------------------------------------
+	@Override
+	protected void onActivityResult(int requestCode, int resultCode, Intent intent) {
+		switch (requestCode & 0xFF) {
+		case LOGIN_CODE:
+			if (UnilinkDB.getDatabase().isValidated()) {
+				UnilinkDB.getDatabase().saveUserToStorage(this);
+				doRedirect(requestCode, 0);
+			}
+			
+			/*{
+				AlertDialog.Builder builder = new AlertDialog.Builder(this);
+				builder.setMessage(R.string.dialog_flogin_message1)
+					.setTitle(R.string.dialog_flogin_title);
+				builder.setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
+			           public void onClick(DialogInterface dialog, int id) {
+			           }
+			       });
+				AlertDialog dialog = builder.create();
+				dialog.show();
+			}
+			else {
+				
+			}*/
+			
+			break;
+		case SHARE_CODE:
+			break;
+		case SETTINGS_CODE:
+			break;
+		}
 	}
 }
