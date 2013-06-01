@@ -32,6 +32,8 @@ class UnilinkClient:
 				self.set_upvote(data)
 			elif head == 'DNVT':
 				self.set_dnvote(data)
+			elif head == 'VALU':
+				self.validate_user(data)
 			#cur_thread = threading.current_thread()
 			#response = "{}: {}".format(cur_thread.name, data)
 			#self.request.sendall(response)
@@ -42,6 +44,29 @@ class UnilinkClient:
 			return None
 		else:
 			return message[0:4]
+	
+	def validate_user(self, message):
+		tokens = message[4:].split(' ');
+		if (len(tokens) != 2):
+			print 'Malformed VALU request from client', self.addr
+			return
+		try:
+			print 'Received VALU request from client', self.addr
+			username = base64.urlsafe_b64decode(tokens[0].strip())
+			password = base64.urlsafe_b64decode(tokens[1].strip())
+		except:
+			print 'Error processing VALU request from client', self.addr
+		db = unidb.get_database()
+		query = db.validate_user(username, password)
+		print 'Queried VALU data for client', self.addr
+		if query > 0:
+			response = 'UUSID '+str(query)+'\n'
+		else:
+			response = 'UFAIL\n'
+		print 'Sending', response.strip(), 'to client', self.addr
+		self.request.sendall(response)
+		print 'VALU request complete'
+		
 
 	def update_location(self, message):
 		try:
