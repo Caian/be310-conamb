@@ -3,6 +3,7 @@ package com.example.unilink1;
 import com.google.android.gms.maps.model.BitmapDescriptor;
 
 public class MarkerPin extends BasePin {
+	
 	private long type = 0;
 	private long icon = 0;
 	
@@ -12,6 +13,7 @@ public class MarkerPin extends BasePin {
 		this.icon = icon;
 	}
 	
+	@Override
 	public long getType() {
 		return this.type;
 	}

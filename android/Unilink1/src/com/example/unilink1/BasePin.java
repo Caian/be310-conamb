@@ -7,6 +7,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 
 public class BasePin {
+	
+	public final static long CATEGORY_NEWS = 0;
 
 	private long uid = 0;
 	private long date = 0;
@@ -38,6 +40,10 @@ public class BasePin {
 
 	public double getLon() {
 		return this.lon;
+	}
+	
+	public long getType() {
+		return -1;
 	}
 	
 	public View getView(LayoutInflater inflater) {

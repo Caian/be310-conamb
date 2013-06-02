@@ -1,15 +1,21 @@
 package com.example.unilink1;
 
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.URL;
+import java.net.URLConnection;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Vector;
 
-import android.util.SparseArray;
-import android.util.SparseIntArray;
+import android.content.Context;
+import android.os.AsyncTask;
 
 import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
-import com.google.android.gms.maps.model.LatLng;
 
 public class PinLocalStorage {
 	
@@ -27,7 +33,8 @@ public class PinLocalStorage {
 	
 	private List<MarkerPin> markers;
 	private List<NewsPin> news;
-	private SparseIntArray icons;
+	//private SparseIntArray icons;
+	private Context context;
 	
 	
 	// -----------------------------------------------------
@@ -36,7 +43,14 @@ public class PinLocalStorage {
 	private PinLocalStorage() {
 		this.markers = new ArrayList<MarkerPin>();
 		this.news = new ArrayList<NewsPin>();
-		this.icons = new SparseIntArray();
+		//this.icons = new SparseIntArray();
+	}
+	
+	// -----------------------------------------------------
+	// Seta o contexto
+	// -----------------------------------------------------
+	public void setContext(Context c) {
+		this.context = c;
 	}
 	
 	// -----------------------------------------------------
@@ -80,5 +94,69 @@ public class PinLocalStorage {
 	// -----------------------------------------------------
 	public void loadFromLocalStorage() {
 		
+	}
+
+	
+	// -----------------------------------------------------
+	// Baixa as imagens para o cache local
+	// -----------------------------------------------------
+	public void downloadImages(Vector<BasePin> pins) {
+		Vector<Long> uids = new Vector<Long>();
+		for (int i = 0; i < pins.size(); i++) {
+			if (pins.get(i).getType() == BasePin.CATEGORY_NEWS)
+				uids.add(pins.get(i).getUid());
+		}
+		
+		LongDownloadNewsImages d = new LongDownloadNewsImages();
+		d.execute(uids);
+	}
+	
+	
+	// -----------------------------------------------------
+	// Tarefa assíncrona de download
+	// -----------------------------------------------------
+	public class LongDownloadNewsImages extends AsyncTask<Vector<Long>, Void, Boolean> {
+		@Override
+		protected Boolean doInBackground(Vector<Long>... params) {
+			for (int i = 0; i < params[0].size(); i++) {
+				try {
+					Long uid = params[0].get(i);
+		            URL url = new URL("http://" + TCPClient.hostname + 
+		            		":" + TCPClient.hostportd + 
+		            		"/be310/conamb/images/" + uid + ".jpg");
+		            URLConnection connection = url.openConnection();
+		            connection.connect();
+
+		            //int fileLength = connection.getContentLength();
+		            File f = new File(context.getExternalFilesDir(null), uid + ".jpg");
+		            
+		            InputStream input = new BufferedInputStream(url.openStream());
+		            OutputStream output = new FileOutputStream(f);
+	
+		            byte data[] = new byte[1024];
+		            //long total = 0;
+		            int count;
+		            while ((count = input.read(data)) != -1) {
+		                //total += count;
+		                output.write(data, 0, count);
+		            }
+	
+		            output.flush();
+		            output.close();
+		            input.close();
+		        } catch (Exception e) {
+		        }
+			}
+			return true;
+		}
+
+		public void setContext(Context c) {
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		protected void onPostExecute(final Boolean success) {
+		}
 	}
 }

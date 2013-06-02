@@ -1,5 +1,12 @@
 package com.example.unilink1;
 
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintStream;
 import java.util.HashMap;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -17,6 +24,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -30,10 +38,14 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
 	// Variáveis -------------------------------------------
 	
+	public final static String LAST_LOCATION = "location.info";
+	
 	//private Menu menu;
 	private GoogleMap map;
 	private LocationManager locationManager;
-	private Location location;
+	private LatLng location;
+	private int latq[];
+	private int lonq[];
 	private Boolean autoMove = true;
 	
 	private final int LOGIN_CODE = 2;
@@ -53,27 +65,46 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 		
+		this.latq = new int[2];
+		this.lonq = new int[2];
+		
+		this.latq[0] = 1000;
+		this.latq[1] = 1000;
+		this.lonq[0] = 1000;
+		this.lonq[1] = 1000;
+		
 		this.map = ((SupportMapFragment)getSupportFragmentManager().findFragmentById(R.id.map))
 		        .getMap();
 		
 	    this.locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-	    this.locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 50000, 10, this);
+	    this.locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 10, this);
 	    
-	    //Criteria criteria = new Criteria();
-	    //String provider = locationManager.getBestProvider(criteria, false);
-	    //this.location = locationManager.getLastKnownLocation(provider);
+	    try {
+			FileInputStream fos = openFileInput(LAST_LOCATION);
+			InputStreamReader s = new InputStreamReader(fos);
+			BufferedReader b = new BufferedReader(s);
+			double lat = Double.parseDouble(b.readLine());
+			double lon = Double.parseDouble(b.readLine());
+			b.close();
+			this.location = new LatLng(lat, lon);
+			changeLocation(this.location);
+			moveToLocation();
+		} catch (FileNotFoundException e) {
+			// Nada...
+		} catch (IOException e) {
+			// Hue?
+		}
     
 	    if (this.map != null) {
 	    	
 	    	//map.setOnMarkerClickListener(MarkerContentManager.getManager());
 	    	this.map.setInfoWindowAdapter(new PinContentManager(getLayoutInflater()));
 	    	this.map.setOnInfoWindowClickListener(this);
-	    	
-	    	moveToLocation();
 	    }
 	    
+	    PinLocalStorage.getStorage().setContext(this);
+	    
 	    UnilinkDB db = UnilinkDB.getDatabase();
-	    db.updateNear(-23.19653095677495, -46.88130693510175, this);
 	    db.loadUserFromStorage(this);
 	    db.validateUser();
 	   
@@ -88,6 +119,48 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 		getMenuInflater().inflate(R.menu.main, menu);
 		return true;
 	}
+	
+	
+	// -----------------------------------------------------
+	// 
+	// -----------------------------------------------------
+	public void changeLocation(LatLng arg0) {
+		if (arg0 != null) {
+			
+			this.location = arg0;
+			
+			UnilinkDB db = UnilinkDB.getDatabase();
+			
+			int latq2[] = new int[2];
+			int lonq2[] = new int[2];
+			
+			db.compressQuadrant(this.location.latitude, 
+					this.location.longitude, 
+					latq2, lonq2);
+			
+			if (latq[0] != latq2[0] || latq[1] != latq2[1] ||
+					lonq[0] != lonq2[0] || lonq[1] != lonq2[1]) {
+				this.latq = latq2;
+				this.lonq = lonq2;
+				
+				UnilinkDB.getDatabase().updateNear(latq, lonq, this);
+				
+				try {
+					FileOutputStream fos = openFileOutput(LAST_LOCATION, 
+							Context.MODE_PRIVATE);
+					PrintStream s = new PrintStream(fos);
+					s.println(this.location.latitude);
+					s.println(this.location.longitude);
+					s.close();
+				} catch (FileNotFoundException e) {
+					// Nada...
+				}
+				
+				if (this.autoMove) 
+					moveToLocation();
+			}
+		}
+	}
 
 	
 	// -----------------------------------------------------
@@ -95,8 +168,8 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 	// -----------------------------------------------------
 	@Override
 	public void onLocationChanged(Location arg0) {
-		this.location = arg0;
-		if (this.autoMove) moveToLocation();
+		changeLocation(new LatLng(arg0.getLatitude(), 
+				arg0.getLongitude()));
 	}
 
 	
@@ -135,7 +208,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 	// -----------------------------------------------------
 	public void moveToLocation() {
 		if (location != null) {
-			LatLng p = new LatLng(this.location.getLatitude(), this.location.getLongitude());
+			LatLng p = this.location;
 			this.map.moveCamera(CameraUpdateFactory.newLatLngZoom(p, 15));
 		}
 	}
@@ -215,6 +288,12 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 	// -----------------------------------------------------
 	@Override
 	public void onInfoWindowClick(Marker arg0) {
+		BasePin p = UnilinkDB.getDatabase().getPin(arg0);
+		long uid = p.getUid();
+		Intent intent = new Intent(this, NewsActivity.class);
+		intent.putExtra(NewsActivity.REF_PIN, uid);
+		startActivity(intent);
+		
 	}
 
 	

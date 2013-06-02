@@ -7,5 +7,6 @@
     <string name="title_activity_share">Compartilhar</string>
     <string name="hello_world">Hello world!</string>
     <string name="action_picture">Capturar</string>
+    <string name="title_activity_news">NewsActivity</string>
 
 </resources>

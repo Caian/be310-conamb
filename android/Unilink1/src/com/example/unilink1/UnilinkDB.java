@@ -9,12 +9,14 @@ import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Vector;
 import com.google.android.gms.maps.model.Marker;
 
 import android.content.Context;
 import android.os.AsyncTask;
 import android.util.Base64;
+import android.util.SparseArray;
 
 public class UnilinkDB {
 	
@@ -32,7 +34,8 @@ public class UnilinkDB {
 	
 	private final String USERFILE = "user.info";
 	
-	private HashMap<Marker, BasePin> pins;
+	private HashMap<Marker, BasePin> hpins;
+	private SparseArray<BasePin> vpins;
 	
 	private String username = "";
 	private String password = "";
@@ -46,8 +49,9 @@ public class UnilinkDB {
 	// -----------------------------------------------------
 	private UnilinkDB()
 	{
-		client = new TCPClient();
-		pins = new HashMap<Marker, BasePin>();
+		this.client = new TCPClient();
+		this.hpins = new HashMap<Marker, BasePin>();
+		this.vpins = new SparseArray<BasePin>();
 	}
 	
 	
@@ -100,22 +104,25 @@ public class UnilinkDB {
 	
 	
 	// -----------------------------------------------------
-	// Atualiza os pinos próximos a uma latitude/longitude
+	// Comprime a posição em quadrante
 	// -----------------------------------------------------
-	public void updateNear(double latitude, double longitude, PinListener listener) {
-		// Comprime lat e long para angulo + minuto
+	public void compressQuadrant(double latitude, double longitude, 
+			int latq[], int lonq[]) {
 		latitude += 90;
 		longitude += 180;
-		
-		Integer[] latq = new Integer[2];
-		Integer[] lonq = new Integer[2];
 		
 		latq[0] = (int)latitude;
 		latq[1] = (int)(60.0 * (latitude - latq[0]));
 		
 		lonq[0] = (int)longitude;
 		lonq[1] = (int)(60.0 * (longitude - lonq[0]));
-		
+	}
+	
+	
+	// -----------------------------------------------------
+	// Atualiza os pinos próximos a uma latitude/longitude
+	// -----------------------------------------------------
+	public void updateNear(int latq[], int lonq[], PinListener listener) {
 		String lats = String.format("%03d", latq[0]) + 
 				String.format("%02d", latq[1]);
 		String lons = String.format("%03d", lonq[0]) + 
@@ -222,7 +229,15 @@ public class UnilinkDB {
 	// Busca um pino a partir de um marcador
 	// -----------------------------------------------------
 	public BasePin getPin(Marker marker) {
-		return this.pins.get(marker);
+		return this.hpins.get(marker);
+	}
+	
+
+	// -----------------------------------------------------
+	// Busca um pino a partir de seu uid
+	// -----------------------------------------------------
+	public BasePin getPin(long uid) {
+		return this.vpins.get((int)uid);
 	}
 	
 	
@@ -297,6 +312,24 @@ public class UnilinkDB {
 	
 	
 	// -----------------------------------------------------
+	// Curte uma noticia
+	// -----------------------------------------------------
+	public void like(long uid) {
+		LongVote v = new LongVote();
+		v.execute(1L, uid);
+	}
+
+
+	// -----------------------------------------------------
+	// Descurte uma noticia
+	// -----------------------------------------------------
+	public void dislike(long uid) {
+		LongVote v = new LongVote();
+		v.execute(-1L, uid);
+	}
+	
+	
+	// -----------------------------------------------------
 	// Tarefa assíncrona de baixar novos pinos
 	// -----------------------------------------------------
 	public class LongUpdateNearPins extends AsyncTask<String, Integer, Boolean> {
@@ -362,9 +395,14 @@ public class UnilinkDB {
 			if (!result)
 				return;
 			
+			PinLocalStorage.getStorage().downloadImages(this.pins);
+			
 			if (this.listener != null) {
-				for (int i = 0; i < this.pins.size(); i++)
-					listener.OnNewPin(this.pins.get(i));
+				for (int i = 0; i < this.pins.size(); i++) {
+					BasePin p = this.pins.get(i);
+					hpins.put(listener.OnNewPin(p), p);
+					vpins.put((int)p.getUid(), p);
+				}
 			}
 		}
 	}
@@ -386,6 +424,58 @@ public class UnilinkDB {
 			} else {
 				validated = false;
 			}
+		}
+	}
+	
+	
+	// -----------------------------------------------------
+	// Tarefa assíncrona de validar usuário
+	// -----------------------------------------------------
+	public class LongVote extends AsyncTask<Long, Void, Boolean> {
+		@Override
+		protected Boolean doInBackground(Long... params) {
+			synchronized (client) {
+				
+				if (!client.open())
+					return false;
+				
+				String s;
+				
+				if (params[0] == 1) {
+					s = "UPVT";
+				}else if (params[0] == -1) {
+					s = "DNVT";
+				}else {
+					return false;
+				}
+				
+				 s = s + encodeString(username) + 
+					" " + encodeString(password) + " " + params[1];
+				
+				// Monta a mensagem
+				client.sendMessage(s);
+
+				// Não me importo com o resultado por enquanto
+				String response = client.readLine();
+				if (response == null)
+					return false;
+				
+				NewsPin pin = (NewsPin) parseGetResponse(response);
+				if (pin == null)
+					return false;
+
+				NewsPin old = (NewsPin) getPin(params[1]);
+				old.setUpVotes(pin.getUpVotes());
+				old.setDownVotes(pin.getDownVotes());
+				
+				client.close();
+				return true;
+			}
+		}
+
+		@Override
+		protected void onPostExecute(final Boolean success) {
+
 		}
 	}
 }

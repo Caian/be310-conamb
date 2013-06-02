@@ -9,8 +9,9 @@ import java.net.UnknownHostException;
 
 public class TCPClient {
 	
-	public final String hostname = "192.168.1.103";
-	public final int hostport = 3136;
+	public final static String hostname = "192.168.1.103";
+	public final static int hostport = 3136;
+	public final static int hostportd = 3137;
 	
 	private Socket clientSocket = null;
 	private OutputStream writeStream = null;

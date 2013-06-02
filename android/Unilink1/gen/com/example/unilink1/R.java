@@ -146,28 +146,34 @@ containing a value of this type.
     }
     public static final class drawable {
         public static final int ic_comment=0x7f020000;
-        public static final int ic_grey=0x7f020001;
-        public static final int ic_launcher=0x7f020002;
-        public static final int ic_mark_dnvt=0x7f020003;
-        public static final int ic_mark_upvt=0x7f020004;
-        public static final int ic_recl=0x7f020005;
-        public static final int ic_recl_batt=0x7f020006;
-        public static final int ic_recl_light=0x7f020007;
-        public static final int ic_trash=0x7f020008;
-        public static final int ic_unknown=0x7f020009;
+        public static final int ic_commentg=0x7f020001;
+        public static final int ic_commentr=0x7f020002;
+        public static final int ic_grey=0x7f020003;
+        public static final int ic_launcher=0x7f020004;
+        public static final int ic_mark_dnvt=0x7f020005;
+        public static final int ic_mark_dnvtr=0x7f020006;
+        public static final int ic_mark_upvt=0x7f020007;
+        public static final int ic_mark_upvtg=0x7f020008;
+        public static final int ic_recl=0x7f020009;
+        public static final int ic_recl_batt=0x7f02000a;
+        public static final int ic_recl_light=0x7f02000b;
+        public static final int ic_trash=0x7f02000c;
+        public static final int ic_unknown=0x7f02000d;
     }
     public static final class id {
-        public static final int action_forgot_password=0x7f050017;
-        public static final int action_settings=0x7f050019;
-        public static final int action_share=0x7f050018;
-        public static final int buttonCapture=0x7f050011;
-        public static final int buttonShare=0x7f05000e;
-        public static final int editTextName=0x7f050012;
-        public static final int editTextNews=0x7f05000d;
+        public static final int ImageViewDislike=0x7f050010;
+        public static final int action_forgot_password=0x7f05001a;
+        public static final int action_settings=0x7f05001c;
+        public static final int action_share=0x7f05001b;
+        public static final int buttonCapture=0x7f050014;
+        public static final int buttonShare=0x7f050012;
+        public static final int editTextName=0x7f050015;
+        public static final int editTextNews=0x7f050011;
         public static final int email=0x7f050008;
         public static final int hybrid=0x7f050004;
-        public static final int imageView2=0x7f050015;
-        public static final int imageViewPicture=0x7f050010;
+        public static final int imageView2=0x7f050018;
+        public static final int imageViewLike=0x7f05000f;
+        public static final int imageViewPicture=0x7f05000d;
         public static final int login=0x7f05000a;
         public static final int login_form=0x7f050007;
         public static final int login_status=0x7f050005;
@@ -179,29 +185,32 @@ containing a value of this type.
         public static final int satellite=0x7f050002;
         public static final int sign_in_button=0x7f05000b;
         public static final int terrain=0x7f050003;
-        public static final int textDnvotes=0x7f050016;
-        public static final int textTitle=0x7f050013;
-        public static final int textUpvotes=0x7f050014;
-        public static final int textViewChars=0x7f05000f;
+        public static final int textDnvotes=0x7f050019;
+        public static final int textTitle=0x7f050016;
+        public static final int textUpvotes=0x7f050017;
+        public static final int textViewChars=0x7f050013;
+        public static final int textViewNews=0x7f05000e;
     }
     public static final class layout {
         public static final int activity_login=0x7f030000;
         public static final int activity_main=0x7f030001;
-        public static final int activity_share=0x7f030002;
-        public static final int news_marker=0x7f030003;
+        public static final int activity_news=0x7f030002;
+        public static final int activity_share=0x7f030003;
+        public static final int news_marker=0x7f030004;
     }
     public static final class menu {
         public static final int login=0x7f0a0000;
         public static final int main=0x7f0a0001;
-        public static final int share=0x7f0a0002;
+        public static final int news=0x7f0a0002;
+        public static final int share=0x7f0a0003;
     }
     public static final class string {
-        public static final int action_forgot_password=0x7f06001c;
+        public static final int action_forgot_password=0x7f06001d;
         public static final int action_picture=0x7f060016;
         public static final int action_settings=0x7f060012;
         public static final int action_share=0x7f060013;
-        public static final int action_sign_in_register=0x7f06001a;
-        public static final int action_sign_in_short=0x7f06001b;
+        public static final int action_sign_in_register=0x7f06001b;
+        public static final int action_sign_in_short=0x7f06001c;
         public static final int app_name=0x7f060011;
         /**   Title for notification shown when GooglePlayServices is unavailable [CHAR LIMIT=70] 
          */
@@ -265,40 +274,41 @@ containing a value of this type.
         find the service-side assets. [CHAR LIMIT=25] 
          */
         public static final int common_signin_button_text_long=0x7f06000d;
-        public static final int error_field_required=0x7f060022;
-        public static final int error_incorrect_password=0x7f060020;
-        public static final int error_invalid_email=0x7f06001e;
-        public static final int error_invalid_password=0x7f06001f;
-        public static final int error_no_connect=0x7f060021;
+        public static final int error_field_required=0x7f060023;
+        public static final int error_incorrect_password=0x7f060021;
+        public static final int error_invalid_email=0x7f06001f;
+        public static final int error_invalid_password=0x7f060020;
+        public static final int error_no_connect=0x7f060022;
         public static final int hello_world=0x7f060015;
-        public static final int login_progress_signing_in=0x7f06001d;
-        public static final int pref_default_display_name=0x7f060028;
-        public static final int pref_description_social_recommendations=0x7f060026;
+        public static final int login_progress_signing_in=0x7f06001e;
+        public static final int pref_default_display_name=0x7f060029;
+        public static final int pref_description_social_recommendations=0x7f060027;
         /**  Example settings for Data & Sync 
          */
-        public static final int pref_header_data_sync=0x7f06002a;
+        public static final int pref_header_data_sync=0x7f06002b;
         /**  Strings related to Settings 
  Example General settings 
          */
-        public static final int pref_header_general=0x7f060024;
+        public static final int pref_header_general=0x7f060025;
         /**  Example settings for Notifications 
          */
-        public static final int pref_header_notifications=0x7f06002d;
-        public static final int pref_ringtone_silent=0x7f060030;
-        public static final int pref_title_add_friends_to_messages=0x7f060029;
-        public static final int pref_title_display_name=0x7f060027;
-        public static final int pref_title_new_message_notifications=0x7f06002e;
-        public static final int pref_title_ringtone=0x7f06002f;
-        public static final int pref_title_social_recommendations=0x7f060025;
-        public static final int pref_title_sync_frequency=0x7f06002b;
-        public static final int pref_title_system_sync_settings=0x7f06002c;
-        public static final int pref_title_vibrate=0x7f060031;
+        public static final int pref_header_notifications=0x7f06002e;
+        public static final int pref_ringtone_silent=0x7f060031;
+        public static final int pref_title_add_friends_to_messages=0x7f06002a;
+        public static final int pref_title_display_name=0x7f060028;
+        public static final int pref_title_new_message_notifications=0x7f06002f;
+        public static final int pref_title_ringtone=0x7f060030;
+        public static final int pref_title_social_recommendations=0x7f060026;
+        public static final int pref_title_sync_frequency=0x7f06002c;
+        public static final int pref_title_system_sync_settings=0x7f06002d;
+        public static final int pref_title_vibrate=0x7f060032;
         /**  Strings related to login 
          */
-        public static final int prompt_email=0x7f060018;
-        public static final int prompt_password=0x7f060019;
-        public static final int title_activity_login=0x7f060017;
-        public static final int title_activity_settings=0x7f060023;
+        public static final int prompt_email=0x7f060019;
+        public static final int prompt_password=0x7f06001a;
+        public static final int title_activity_login=0x7f060018;
+        public static final int title_activity_news=0x7f060017;
+        public static final int title_activity_settings=0x7f060024;
         public static final int title_activity_share=0x7f060014;
     }
     public static final class style {

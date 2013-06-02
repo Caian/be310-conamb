@@ -27,10 +27,7 @@ public class PinContentManager implements InfoWindowAdapter {
 	// -----------------------------------------------------
 	@Override
 	public View getInfoContents(Marker arg0) {
-		//return UnilinkDB.getDatabase().getPin(arg0).getView(this.inflater);
-		return null;
-		//View v = inflater.inflate(R.layout.news_marker, null);
-		//return v;
+		return UnilinkDB.getDatabase().getPin(arg0).getView(this.inflater);
 	}
 
 	
@@ -39,7 +36,6 @@ public class PinContentManager implements InfoWindowAdapter {
 	// -----------------------------------------------------
 	@Override
 	public View getInfoWindow(Marker arg0) {
-		// TODO Auto-generated method stub
 		return null;
 	}
 }
