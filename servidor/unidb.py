@@ -101,7 +101,7 @@ class UnilinkDatabase:
 		uid = self.uidref + 1
 		try:
 			marker = self.mtable.row
-			marker['uus'] = 0
+			marker['uus'] = uus
 			marker['uid'] = uid
 			marker['date'] = date
 			marker['type'] = type
@@ -122,7 +122,7 @@ class UnilinkDatabase:
 		uid = self.uidref + 1
 		try:
 			news = self.ntable.row
-			news['uus'] = 0
+			news['uus'] = uus
 			news['uid'] = uid
 			news['date'] = date
 			news['name'] = name

@@ -14,7 +14,7 @@ marker['uus'] = 0
 marker['uid'] = 1
 marker['date'] = 11
 marker['type'] = 35
-marker['icon'] = 4
+marker['icon'] = 1
 marker['lat'] = -23.1964709
 marker['lon'] = -46.88133920000001
 
@@ -24,7 +24,7 @@ marker['uus'] = 0
 marker['uid'] = 2
 marker['date'] = 11
 marker['type'] = 35
-marker['icon'] = 4
+marker['icon'] = 2
 marker['lat'] = -23.19627863693154
 marker['lon'] = -46.882567405700684
 
@@ -34,7 +34,7 @@ marker['uus'] = 0
 marker['uid'] = 3
 marker['date'] = 11
 marker['type'] = 35
-marker['icon'] = 4
+marker['icon'] = 3
 marker['lat'] = -23.195722445117852
 marker['lon'] = -46.8711519241333
 

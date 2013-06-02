@@ -5,6 +5,13 @@ import threading
 import base64
 import struct
 import unidb
+from datetime import datetime
+import os
+import shutil
+import math
+
+download_dir = './temp'
+resource_dir = './images'
 
 class UnilinkClient:
 
@@ -34,10 +41,10 @@ class UnilinkClient:
 				self.set_dnvote(data)
 			elif head == 'VALU':
 				self.validate_user(data)
-			#elif head == 'POSM':
-			#	self.post_marker(data)
-			#elif head == 'POSN':
-			#	self.post_news(data)
+			elif head == 'POSM':
+				self.post_marker(data)
+			elif head == 'POSN':
+				self.post_news(data)
 			#cur_thread = threading.current_thread()
 			#response = "{}: {}".format(cur_thread.name, data)
 			#self.request.sendall(response)
@@ -184,9 +191,9 @@ class UnilinkClient:
 			if uus <= 0:
 				print 'Invalid authentication from client', self.addr
 				return
+			count = db.dn_vote(uus, uid, 1)
 		except:
 			print 'Error processing DNVT request from client', self.addr
-		count = db.dn_vote(uus, uid, 1)
 		try:
 			if count == 0:
 				print 'News not found', self.addr
@@ -196,4 +203,108 @@ class UnilinkClient:
 		except:
 			print 'Error sending update to client', self.addr
 		print 'DNVT request complete'
+
+	def post_news(self, message):
+		r = self.extract_auth(message)
+		if r == None or len(r[0]) == 0:
+			print 'Malformed POSN request from client', self.addr
+			return
+		try:
+			print 'Received POSN request from client', self.addr
+			message = r[0][1:]
+			username = r[1][0]
+			password = r[1][1]
+			tokens = message.split(' ')
+			if len(tokens) != 5:
+				print 'Malformed POSN request from client', self.addr
+				return
+			nname = base64.urlsafe_b64decode(tokens[0].strip())
+			ntext = base64.urlsafe_b64decode(tokens[1].strip())
+			lat = float(tokens[2].strip())
+			lon = float(tokens[3].strip())
+			dlen = int(tokens[4].strip())
+			utcd = datetime.utcnow()
+			utcd = int((utcd-datetime(1970,1,1)).total_seconds())
+		except:
+			print 'Malformed POSN request from client', self.addr
+			return
+		print utcd
+		try:
+			db = unidb.get_database()
+			uus = db.validate_user(username, password)
+			if uus <= 0:
+				print 'Invalid authentication from client', self.addr
+				returna
+			if dlen > 0:
+				fn = os.path.join(download_dir,str(uus) + '.temp')
+				with open(fn,'wb') as ftemp:
+					count = 0
+					print 'Receiving data stream from client', self.addr
+					while count < dlen:
+						data = self.request.recv(1024)
+						count += len(data)
+						ftemp.write(data)
+					ftemp.close()
+			uid = db.post_news(uus, utcd, nname, ntext, lat, lon)
+			if uid < 0:
+				print 'Failed to post news from client', self.addr
+				if dlen > 0:
+					os.remove(fn)
+				return
+			else:
+				if dlen > 0:
+					fnd = os.path.join(resource_dir,str(uid) + '.jpg')
+					os.rename(fn, fnd)
+				print 'Sending update to client', self.addr
+				self.update_uid('GETD'+str(uid))
+		except:
+			print 'Error processing POSN request from client', self.addr
+		print 'POSN request complete'
+
+	def post_marker(self, message):
+		r = self.extract_auth(message)
+		if r == None or len(r[0]) == 0:
+			print 'Malformed POSM request from client', self.addr
+			return
+		try:
+			print 'Received POSM request from client', self.addr
+			message = r[0][1:]
+			username = r[1][0]
+			password = r[1][1]
+			tokens = message.split(' ')
+			for t in tokens:
+				print t
+			if len(tokens) != 4:
+				print 'Malformed POSM request from client', self.addr
+				return
+			type = int(tokens[0].strip())
+			print type
+			icon = int(tokens[1].strip())
+			print icon
+			lat = float(tokens[2].strip())
+			print lat
+			lon = float(tokens[3].strip())
+			print lon
+			utcd = datetime.utcnow()
+			utcd = int((utcd-datetime(1970,1,1)).total_seconds())
+		except:
+			print 'Malformed POSM request from client', self.addr
+			return
+		print utcd
+		try:
+			db = unidb.get_database()
+			uus = db.validate_user(username, password)
+			if uus <= 0:
+				print 'Invalid authentication from client', self.addr
+				return
+			uid = db.post_marker(uus, utcd, type, icon, lat, lon)
+			if uid < 0:
+				print 'Failed to post maker from client', self.addr
+				return
+			else:
+				print 'Sending update to client', self.addr
+				self.update_uid('GETD'+str(uid))
+		except:
+			print 'Error processing POSM request from client', self.addr
+		print 'POSM request complete'
 
