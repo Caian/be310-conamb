@@ -43,7 +43,9 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 	//private Menu menu;
 	private GoogleMap map;
 	private LocationManager locationManager;
-	private LatLng location;
+	private static LatLng location;
+	private static PinListener pinListener = null;
+	private static Context context = null;
 	private int latq[];
 	private int lonq[];
 	private Boolean autoMove = true;
@@ -54,6 +56,8 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 	private final int SHARE_REDIRECT = 3 << 8;
 	private final int SETTINGS_CODE = 4;
 	private final int SETTINGS_REDIRECT = 4 << 8;
+	private final int MARK_CODE = 5;
+	private final int MARK_REDIRECT = 5 << 8;
 	
 	// Métodos ---------------------------------------------
 	
@@ -64,6 +68,9 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
+		
+		MainActivity.pinListener = this;
+		MainActivity.context = this;
 		
 		this.latq = new int[2];
 		this.lonq = new int[2];
@@ -79,25 +86,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 	    this.locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 	    this.locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 10, this);
 	    
-	    try {
-			FileInputStream fos = openFileInput(LAST_LOCATION);
-			InputStreamReader s = new InputStreamReader(fos);
-			BufferedReader b = new BufferedReader(s);
-			double lat = Double.parseDouble(b.readLine());
-			double lon = Double.parseDouble(b.readLine());
-			b.close();
-			this.location = new LatLng(lat, lon);
-			changeLocation(this.location);
-			moveToLocation();
-		} catch (FileNotFoundException e) {
-			// Nada...
-		} catch (IOException e) {
-			// Hue?
-		}
-    
 	    if (this.map != null) {
-	    	
-	    	//map.setOnMarkerClickListener(MarkerContentManager.getManager());
 	    	this.map.setInfoWindowAdapter(new PinContentManager(getLayoutInflater()));
 	    	this.map.setOnInfoWindowClickListener(this);
 	    }
@@ -107,7 +96,47 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 	    UnilinkDB db = UnilinkDB.getDatabase();
 	    db.loadUserFromStorage(this);
 	    db.validateUser();
-	   
+	    
+	    try {
+			FileInputStream fos = openFileInput(LAST_LOCATION);
+			InputStreamReader s = new InputStreamReader(fos);
+			BufferedReader b = new BufferedReader(s);
+			double lat = Double.parseDouble(b.readLine());
+			double lon = Double.parseDouble(b.readLine());
+			b.close();
+			MainActivity.location = new LatLng(lat, lon);
+			changeLocation(MainActivity.location);
+			moveToLocation();
+		} catch (FileNotFoundException e) {
+			// Nada...
+		} catch (IOException e) {
+			// Hue?
+		}
+	}
+	
+	
+	// -----------------------------------------------------
+	// 
+	// -----------------------------------------------------
+	public static LatLng getLng() {
+		return new LatLng(MainActivity.location.latitude, 
+				MainActivity.location.longitude);
+	}
+	
+	
+	// -----------------------------------------------------
+	// 
+	// -----------------------------------------------------
+	public static PinListener getPinListener() {
+		return MainActivity.pinListener;
+	}
+	
+	
+	// -----------------------------------------------------
+	// 
+	// -----------------------------------------------------
+	public static Context getContext() {
+		return MainActivity.context;
 	}
 
 	
@@ -127,15 +156,15 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 	public void changeLocation(LatLng arg0) {
 		if (arg0 != null) {
 			
-			this.location = arg0;
+			MainActivity.location = arg0;
 			
 			UnilinkDB db = UnilinkDB.getDatabase();
 			
 			int latq2[] = new int[2];
 			int lonq2[] = new int[2];
 			
-			db.compressQuadrant(this.location.latitude, 
-					this.location.longitude, 
+			db.compressQuadrant(MainActivity.location.latitude, 
+					MainActivity.location.longitude, 
 					latq2, lonq2);
 			
 			if (latq[0] != latq2[0] || latq[1] != latq2[1] ||
@@ -143,14 +172,14 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 				this.latq = latq2;
 				this.lonq = lonq2;
 				
-				UnilinkDB.getDatabase().updateNear(latq, lonq, this);
+				UnilinkDB.getDatabase().updateNear(latq, lonq);
 				
 				try {
 					FileOutputStream fos = openFileOutput(LAST_LOCATION, 
 							Context.MODE_PRIVATE);
 					PrintStream s = new PrintStream(fos);
-					s.println(this.location.latitude);
-					s.println(this.location.longitude);
+					s.println(MainActivity.location.latitude);
+					s.println(MainActivity.location.longitude);
 					s.close();
 				} catch (FileNotFoundException e) {
 					// Nada...
@@ -208,7 +237,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 	// -----------------------------------------------------
 	public void moveToLocation() {
 		if (location != null) {
-			LatLng p = this.location;
+			LatLng p = MainActivity.location;
 			this.map.moveCamera(CameraUpdateFactory.newLatLngZoom(p, 15));
 		}
 	}
@@ -239,6 +268,15 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 		Intent intent = new Intent(this, ShareActivity.class);
 		startActivity(intent);
 	}
+	
+	
+	// -----------------------------------------------------
+	// 
+	// -----------------------------------------------------
+	public void doMark() {
+		Intent intent = new Intent(this, MarkersActivity.class);
+		startActivity(intent);
+	}
 
 	
 	// -----------------------------------------------------
@@ -255,6 +293,9 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 		case SETTINGS_REDIRECT:
 			doSettings();
 			break;
+		case MARK_REDIRECT:
+			doMark();
+			break;
 		}
 	}
 	
@@ -264,9 +305,10 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 	// -----------------------------------------------------
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
+		UnilinkDB db;
 	    switch (item.getItemId()) {
 	    case R.id.action_share:
-	    	UnilinkDB db = UnilinkDB.getDatabase();
+	    	db = UnilinkDB.getDatabase();
 	    	
 	    	if (!db.isValidated()) {
 	    		doLogin(SHARE_REDIRECT);
@@ -274,8 +316,17 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 	    		doShare();
 	    	}
 	        return true;
+	    case R.id.action_mark:
+	    	db = UnilinkDB.getDatabase();
+	    	
+	    	if (!db.isValidated()) {
+	    		doLogin(MARK_REDIRECT);
+	    	} else {
+	    		doMark();
+	    	}
+	        return true;
 	    case R.id.action_settings:
-	    	doSettings();
+	    	//doSettings();
 	        return true;
 	    default:
 	        return super.onOptionsItemSelected(item);
@@ -313,7 +364,10 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 	// -----------------------------------------------------
 	@Override
 	public Marker OnUpdatePin(BasePin p) {
-		return null;
+		p.getMarker().remove();
+		return this.map.addMarker(new MarkerOptions()
+		.position(new LatLng(p.getLat(), p.getLon()))
+		.icon(p.getResourceIcon()));
 	}
 
 

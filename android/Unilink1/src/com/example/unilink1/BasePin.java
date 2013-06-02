@@ -2,6 +2,7 @@ package com.example.unilink1;
 
 import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.Marker;
 
 import android.view.LayoutInflater;
 import android.view.View;
@@ -14,6 +15,15 @@ public class BasePin {
 	private long date = 0;
 	private double lat = 0.0;
 	private double lon = 0.0;
+	private Marker marker = null;
+
+	public Marker getMarker() {
+		return marker;
+	}
+
+	public void setMarker(Marker marker) {
+		this.marker = marker;
+	}
 
 	public BasePin(long uid, long date, double lat, double lon) {
 		this.uid = uid;

@@ -80,10 +80,10 @@ public class PinLocalStorage {
 		int r = R.drawable.ic_unknown;
 		
 		switch ((int)pinIcon) {
-			case 2: r = R.drawable.ic_trash; break;
-			case 4: r = R.drawable.ic_recl; break;
-			case 7: r = R.drawable.ic_recl_batt; break;
-			case 9: r = R.drawable.ic_recl_light; break;
+			case 1: r = R.drawable.ic_trash; break;
+			case 2: r = R.drawable.ic_recl; break;
+			case 3: r = R.drawable.ic_recl_batt; break;
+			case 4: r = R.drawable.ic_recl_light; break;
 		}
 		
 		return BitmapDescriptorFactory.fromResource(r);
@@ -103,8 +103,14 @@ public class PinLocalStorage {
 	public void downloadImages(Vector<BasePin> pins) {
 		Vector<Long> uids = new Vector<Long>();
 		for (int i = 0; i < pins.size(); i++) {
+			BasePin p = pins.get(i);
+			long uid = p.getUid();
+			
+			File f = new File(context.getExternalFilesDir(null), uid + ".jpg");
+			if (f.exists()) continue;
+			
 			if (pins.get(i).getType() == BasePin.CATEGORY_NEWS)
-				uids.add(pins.get(i).getUid());
+				uids.add(p.getUid());
 		}
 		
 		LongDownloadNewsImages d = new LongDownloadNewsImages();
@@ -148,11 +154,6 @@ public class PinLocalStorage {
 		        }
 			}
 			return true;
-		}
-
-		public void setContext(Context c) {
-			// TODO Auto-generated method stub
-			
 		}
 
 		@Override

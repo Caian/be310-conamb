@@ -1,15 +1,32 @@
 package com.example.unilink1;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+import com.google.android.gms.maps.model.LatLng;
+
+import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.app.Activity;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.support.v4.app.NavUtils;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.annotation.TargetApi;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Build;
 import android.provider.MediaStore;
 
@@ -19,6 +36,7 @@ public class ShareActivity extends Activity {
 	
 	public final int PICTURE_WIDTH = 800;
 	public final int PICTURE_HEIGHT = 600;
+	public final float PICTURE_ASPECT = 800.0f/600.0f;
 	
 	private final int CAMERA_CODE = 1;
 	//private final int LOGIN_CODE = 2;
@@ -35,6 +53,43 @@ public class ShareActivity extends Activity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_share);
 		setupActionBar();
+		
+		((EditText)findViewById(R.id.editTextNews)).
+			addTextChangedListener(new TextWatcher() {
+				
+				@Override
+				public void onTextChanged(CharSequence arg0, int arg1, int arg2, int arg3) {
+					((TextView) findViewById(R.id.textViewChars)).
+						setText((140-arg0.length())+"/140");
+				}
+				
+				@Override
+				public void beforeTextChanged(CharSequence arg0, int arg1, int arg2,
+						int arg3) {
+				}
+				
+				@Override
+				public void afterTextChanged(Editable arg0) {
+				}
+			});
+		
+		((Button)findViewById(R.id.buttonCapture)).
+			setOnClickListener(new OnClickListener() {
+			
+			@Override
+			public void onClick(View v) {
+				takePicture();
+			}
+		});
+		
+		((Button)findViewById(R.id.buttonShare)).
+			setOnClickListener(new OnClickListener() {
+			
+			@Override
+			public void onClick(View v) {
+				doShare();
+			}
+		});
 	}
 
 	
@@ -51,10 +106,29 @@ public class ShareActivity extends Activity {
 	
 	// -----------------------------------------------------
 	// 
+	// -----------------------------------------------------	
+	public void doShare() {
+		File f = new File(getExternalFilesDir(null), "share.jpg");
+		LatLng l = MainActivity.getLng();
+		
+		UnilinkDB.getDatabase().share(
+				((EditText)findViewById(R.id.editTextName)).getText(),
+				((EditText)findViewById(R.id.editTextNews)).getText(),
+				l.latitude, l.longitude, f.getPath());
+		
+		finish();
+	}
+	
+	
+	// -----------------------------------------------------
+	// 
 	// -----------------------------------------------------
 	public void takePicture() {
+		File f = new File(getExternalFilesDir(null), "share.tmp");
+		if (f.exists()) f.delete();
 		Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-	    startActivityForResult(takePictureIntent, 0);
+		takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(f));
+	    startActivityForResult(takePictureIntent, CAMERA_CODE);
 	}
 	
 	
@@ -62,12 +136,7 @@ public class ShareActivity extends Activity {
 	// 
 	// -----------------------------------------------------	
 	private void processImage(Intent data) {
-	    Bitmap photo = (Bitmap)data.getExtras().get("data");
-	    this.sharePicture = Bitmap.createScaledBitmap(photo, 
-	    		PICTURE_WIDTH, PICTURE_HEIGHT, true);
-	    
-	    ((ImageView) findViewById(R.id.imageViewPicture)).
-	    	setImageBitmap(this.sharePicture);
+		new LongProcessImage().execute();
 	}
 
 	
@@ -102,7 +171,7 @@ public class ShareActivity extends Activity {
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 		switch (requestCode) {
 		case CAMERA_CODE:
-			if (requestCode == RESULT_OK)
+			if (resultCode == RESULT_OK)
 				processImage(data);
 			break;
 
@@ -110,5 +179,69 @@ public class ShareActivity extends Activity {
 			break;
 		}
 		super.onActivityResult(requestCode, resultCode, data);
+	}
+	
+	
+	// -----------------------------------------------------
+	// Tarefa assíncrona compartilhar noticia
+	// -----------------------------------------------------
+	public class LongProcessImage extends AsyncTask<String, Void, Boolean> {
+
+		@Override
+		protected Boolean doInBackground(String... params) {
+			File f = new File(getExternalFilesDir(null), "share.tmp");
+			if (!f.exists())
+				return false; // Erro...
+			
+			BitmapFactory.Options bmOptions = new BitmapFactory.Options();
+			bmOptions.inJustDecodeBounds = true;
+		    BitmapFactory.decodeFile(f.getPath(), bmOptions);
+		    
+		    int w, h;
+		    float a = (float)bmOptions.outWidth / (float)bmOptions.outHeight;
+		    if (a < PICTURE_ASPECT) {
+		    	w = PICTURE_WIDTH;
+		    	h = (int)(w / PICTURE_ASPECT);
+		    } else {
+		    	h = PICTURE_HEIGHT;
+		    	w = (int)(h * PICTURE_ASPECT);
+		    }
+		    
+		    int scale=1;
+	        while(bmOptions.outWidth/scale/2>=w && bmOptions.outHeight/scale/2>=h)
+	            scale*=2;
+	        
+	        bmOptions = new BitmapFactory.Options();
+			bmOptions.inSampleSize = scale;
+	        Bitmap photo = BitmapFactory.decodeFile(f.getPath(), bmOptions);
+
+		    try {
+			    sharePicture = Bitmap.createScaledBitmap(photo, 
+			    		PICTURE_WIDTH, PICTURE_HEIGHT, true);
+		    }
+		    catch (RuntimeException e) {
+		    	e.printStackTrace();
+		    }
+		    
+		    try {
+		    	f = new File(getExternalFilesDir(null), "share.jpg");
+				FileOutputStream out = new FileOutputStream(f.getPath());
+				sharePicture.compress(Bitmap.CompressFormat.JPEG, 50, out);
+			} catch (Exception e) {
+			}
+			return true;
+		}
+
+		@Override
+		protected void onPostExecute(final Boolean success) {
+			if (success) {
+				((ImageView) findViewById(R.id.imageViewPicture)).
+				setImageBitmap(sharePicture);
+			}
+			else {
+				((ImageView) findViewById(R.id.imageViewPicture)).
+				setImageBitmap(null);
+			}
+		}
 	}
 }

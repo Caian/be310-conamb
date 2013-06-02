@@ -1,6 +1,7 @@
 package com.example.unilink1;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -9,12 +10,12 @@ import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Vector;
 import com.google.android.gms.maps.model.Marker;
 
 import android.content.Context;
 import android.os.AsyncTask;
+import android.text.Editable;
 import android.util.Base64;
 import android.util.SparseArray;
 
@@ -122,7 +123,7 @@ public class UnilinkDB {
 	// -----------------------------------------------------
 	// Atualiza os pinos próximos a uma latitude/longitude
 	// -----------------------------------------------------
-	public void updateNear(int latq[], int lonq[], PinListener listener) {
+	public void updateNear(int latq[], int lonq[]) {
 		String lats = String.format("%03d", latq[0]) + 
 				String.format("%02d", latq[1]);
 		String lons = String.format("%03d", lonq[0]) + 
@@ -130,7 +131,6 @@ public class UnilinkDB {
 		
 		// Up we go...
 		LongUpdateNearPins updater = new LongUpdateNearPins();
-		updater.setListener(listener);
 		updater.execute("NEAR" + lats + lons);
 	}
 
@@ -330,6 +330,41 @@ public class UnilinkDB {
 	
 	
 	// -----------------------------------------------------
+	// Compartilha uma noticia
+	// -----------------------------------------------------
+	public void share(Editable name, Editable text, double latitude, 
+			double longitude, String sharePicture) {
+		LongShare s = new LongShare();
+		s.execute(name.toString(), text.toString(), sharePicture, 
+		((Double)latitude).toString(), ((Double)longitude).toString());
+	}
+	
+	
+	// -----------------------------------------------------
+	// Compartilha uma noticia
+	// -----------------------------------------------------
+	public void mark(int type, int icon, double latitude, 
+			double longitude) {
+		LongMark m = new LongMark();
+		m.execute(((Integer)type).toString(), ((Integer)icon).toString(), 
+		((Double)latitude).toString(), ((Double)longitude).toString());
+	}
+	
+
+	// -----------------------------------------------------
+	// Atualiza um pino
+	// -----------------------------------------------------	
+	public void updatePin(BasePin p) {
+		Marker old = p.getMarker();
+		Marker m = MainActivity.getPinListener().OnUpdatePin(p);
+		p.setMarker(m);
+		hpins.remove(old);
+		hpins.put(m, p);
+		vpins.put((int)p.getUid(), p);
+	}
+	
+	
+	// -----------------------------------------------------
 	// Tarefa assíncrona de baixar novos pinos
 	// -----------------------------------------------------
 	public class LongUpdateNearPins extends AsyncTask<String, Integer, Boolean> {
@@ -337,7 +372,6 @@ public class UnilinkDB {
 		// Variáveis -------------------------------------------
 		
 		private Vector<BasePin> pins = new Vector<BasePin>();
-		private PinListener listener = null;
 		
 		// Métodos ---------------------------------------------
 		
@@ -383,11 +417,6 @@ public class UnilinkDB {
 				return true;
 			}
 		}
-		
-		public void setListener(PinListener listener) {
-			this.listener  = listener;
-			
-		}
 
 		@Override
 		protected void onPostExecute(Boolean result) {
@@ -397,10 +426,14 @@ public class UnilinkDB {
 			
 			PinLocalStorage.getStorage().downloadImages(this.pins);
 			
-			if (this.listener != null) {
+			PinListener listener = MainActivity.getPinListener();
+			
+			if (listener != null) {
 				for (int i = 0; i < this.pins.size(); i++) {
 					BasePin p = this.pins.get(i);
-					hpins.put(listener.OnNewPin(p), p);
+					Marker m = listener.OnNewPin(p);
+					p.setMarker(m);
+					hpins.put(m, p);
 					vpins.put((int)p.getUid(), p);
 				}
 			}
@@ -432,6 +465,9 @@ public class UnilinkDB {
 	// Tarefa assíncrona de validar usuário
 	// -----------------------------------------------------
 	public class LongVote extends AsyncTask<Long, Void, Boolean> {
+	
+		private NewsPin old;
+	
 		@Override
 		protected Boolean doInBackground(Long... params) {
 			synchronized (client) {
@@ -464,9 +500,9 @@ public class UnilinkDB {
 				if (pin == null)
 					return false;
 
-				NewsPin old = (NewsPin) getPin(params[1]);
-				old.setUpVotes(pin.getUpVotes());
-				old.setDownVotes(pin.getDownVotes());
+				this.old = (NewsPin) getPin(params[1]);
+				this.old.setUpVotes(pin.getUpVotes());
+				this.old.setDownVotes(pin.getDownVotes());
 				
 				client.close();
 				return true;
@@ -475,7 +511,143 @@ public class UnilinkDB {
 
 		@Override
 		protected void onPostExecute(final Boolean success) {
+			updatePin(this.old);
+		}
+	}
 
+
+	// -----------------------------------------------------
+	// Tarefa assíncrona compartilhar noticia
+	// -----------------------------------------------------
+	public class LongShare extends AsyncTask<String, Void, Boolean> {
+
+		private NewsPin pin;
+		private String sharep;
+
+		@Override
+		protected Boolean doInBackground(String... params) {
+			synchronized (client) {
+				
+				if (!client.open())
+					return false;
+				
+				this.sharep = params[2];
+				File f = new File(this.sharep);
+				
+				String s = "POSN" + 
+					encodeString(username) + " " + 
+					encodeString(password) + " " + 
+					encodeString(params[0]) + " " + 
+					encodeString(params[1]) + " " + 
+					params[3] + " " + params[4] + " " + f.length();
+					
+				client.sendMessage(s);
+					
+				try {
+					Thread.sleep(1000);
+				} catch (InterruptedException e) {
+				}
+				
+				FileInputStream fs;
+				try {
+					fs = new FileInputStream(this.sharep);
+				
+					byte data[] = new byte[1024];
+		            int count;
+		            while ((count = fs.read(data)) != -1) {
+		                client.sendData(data, count);
+		            }
+				} catch (FileNotFoundException e) {
+					
+				} catch (IOException e) {
+
+				}
+				
+				String response = client.readLine();
+				if (response == null)
+					return false;
+				
+				this.pin = (NewsPin) parseGetResponse(response);
+				if (this.pin == null)
+					return false;
+
+				client.close();
+				return true;
+			}
+		}
+
+		@Override
+		protected void onPostExecute(final Boolean success) {
+			
+			if (this.pin != null) {
+				PinListener listener = MainActivity.getPinListener();
+				
+				if (listener != null) {
+					BasePin p = this.pin;
+					Marker m = listener.OnNewPin(p);
+					p.setMarker(m);
+					hpins.put(m, p);
+					vpins.put((int)p.getUid(), p);
+				}
+				
+				File f = new File(this.sharep);
+				File nf = new File(MainActivity.getContext().
+					getExternalFilesDir(null), this.pin.getUid() + ".jpg");
+				f.renameTo(nf);
+			}
+		}
+	}
+	
+	
+	// -----------------------------------------------------
+	// Tarefa assíncrona compartilhar noticia
+	// -----------------------------------------------------
+	public class LongMark extends AsyncTask<String, Void, Boolean> {
+
+		private MarkerPin pin;
+
+		@Override
+		protected Boolean doInBackground(String... params) {
+			synchronized (client) {
+				
+				if (!client.open())
+					return false;
+				
+				String s = "POSM" + 
+					encodeString(username) + " " + 
+					encodeString(password) + " " + 
+					params[0] + " " + params[1] + " " + 
+					params[2] + " " + params[3];
+					
+				client.sendMessage(s);
+				
+				String response = client.readLine();
+				if (response == null)
+					return false;
+				
+				this.pin = (MarkerPin) parseGetResponse(response);
+				if (this.pin == null)
+					return false;
+
+				client.close();
+				return true;
+			}
+		}
+
+		@Override
+		protected void onPostExecute(final Boolean success) {
+			
+			if (this.pin != null) {
+				PinListener listener = MainActivity.getPinListener();
+				
+				if (listener != null) {
+					BasePin p = this.pin;
+					Marker m = listener.OnNewPin(p);
+					p.setMarker(m);
+					hpins.put(m, p);
+					vpins.put((int)p.getUid(), p);
+				}
+			}
 		}
 	}
 }

@@ -13,6 +13,8 @@ public class TCPClient {
 	public final static int hostport = 3136;
 	public final static int hostportd = 3137;
 	
+	private final static int TIMEOUT = 4000;
+	
 	private Socket clientSocket = null;
 	private OutputStream writeStream = null;
 	private InputStream readStream = null;
@@ -22,6 +24,7 @@ public class TCPClient {
 			this.clientSocket = new Socket(hostname, hostport);
 			this.writeStream = this.clientSocket.getOutputStream();
 			this.readStream = this.clientSocket.getInputStream();
+			this.clientSocket.setSoTimeout(TCPClient.TIMEOUT);
 			return true;
 		} catch (UnknownHostException e) {
 			return false;
@@ -43,6 +46,15 @@ public class TCPClient {
 			return true;
 		} catch (UnsupportedEncodingException e) {
 			return false; 
+		} catch (IOException e) {
+			return false;
+		}
+	}
+	
+	public Boolean sendData(byte[] data, int count) {
+		try {
+			this.writeStream.write(data, 0, count);
+			return true;
 		} catch (IOException e) {
 			return false;
 		}
