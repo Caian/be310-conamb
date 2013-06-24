@@ -11,12 +11,20 @@ case "GETD":
     break;
 
 case "UPVT":
+	set_upvote( $_POST["uus"], $_POST["passw"], $_POST["uid"] );
     break;
 
 case "DNVT":
+	set_dnvote( $_POST["uus"], $_POST["passw"], $_POST["uid"] );
     break;
 
 case "VALU":
+	$uus = validate_user($_POST["uus"], $_POST["passw"]);
+	if ($uus > 1) {
+		send ("UUSID ".$uus."\n");
+	} else {
+		send("UFAIL\n");
+	}
     break;
 
 case "POSM":
@@ -32,7 +40,7 @@ function update_location ($latfrom, $lonfrom, $latto, $lonto) {
     while ($row = mysql_fetch_array($results[0])) {
         $response = "NEAR M " . $row["uid"] . " " . $row["date"] . "\n";
         echo "Sending " $response;
-        send ($responsta);
+        send ($response);
     }
 
     while ($row = mysql_fetch_array($results[1])) {
@@ -40,7 +48,7 @@ function update_location ($latfrom, $lonfrom, $latto, $lonto) {
         send ($response);
     }
 
-    send ("EORQ\n"); 
+    send ("EORQ\n");
 }
 
 function update_uid ($uid) {
@@ -59,19 +67,52 @@ function update_uid ($uid) {
     }
 }
 
-function set_upvote ($username, $password, $uid) {
+
+
+/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * 	function name:		set_upvote
+ * 	parameters:			$username	(self-explanatory),
+ * 						$password	(self-explanatory),
+ * 						$uid		(unique identifier of the item being
+ * 									 up-voted)
+ * 	return:				none
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ */
+function set_upvote( $username, $password, $uid )
+{
     var $uus;
-    
-    if ($uus = validate_user($username, $password) <= 0) {
-        echo "Invalid authentication";
-        return;
-    }
-
-    $result = $sql->select ("VOTES", array("dir"), array("uid", "uus"), array($uid, $uus), "");
-
-
-    /////////////////////////////////  TERMINAR ESSE MÉTODO!!!!!!!!!!!!!!!!!!!!!!!!!!!  \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+	if ( $uus = validate_user( $username, $password ) <= 0 ) {
+		return;
+	}
+	$count = $sql->vote( $uus, $uid, 1 );
+	if ( $count == 1) {
+		update_uid( $uid );
+	}
 }
+
+
+
+/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * 	function name:		set_dnvote
+ * 	parameters:			$username	(self-explanatory),
+ * 						$password	(self-explanatory),
+ * 						$uid		(unique identifier of the item being
+ * 									 down-voted)
+ * 	return:				none
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ */
+function set_dnvote( $username, $password, $uid )
+{
+	var $uus;
+	if ( $uus = validate_user( $username, $password ) <= 0 ) {
+		return;
+	}
+	$count = $sql->vote( $uus, $uid, -1 );
+	if ( $count == 1) {
+		update_uid( $uid );
+	}
+}
+
 
 function validate_user ($username, $password) {
     $result = $sql->select ("USERS", array("uus"), array("name", "passw"), array($username, $password), "");
@@ -94,12 +135,14 @@ function validate_user ($username, $password) {
         $uus = -1;
     }
 
-    return $uus;
+	return $uss;
 }
 
-// descobrir como envia
+/*
+ * Envia uma string ao cliente.
+ */
 function send ($str) {
-    echo $str; 
+    echo $str;
 }
 
 

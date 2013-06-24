@@ -49,7 +49,7 @@ class SQL{
       }
     }
 
-    $query = eregi_replace(',$', '', $query);    
+    $query = eregi_replace(',$', '', $query);
     $query = $query.")";
 
     mysql_query($query);
@@ -89,12 +89,12 @@ class SQL{
 
     if(count($field_names) != 0){
       $query = $query." WHERE ";
-      
+
       foreach ($field_names as $i => $name) {
         $value = $field_values[$i];
         $query = $query."`".$name."`='".$value."' ".$andor." ";
       }
-      
+
       $query = eregi_replace('('.$andor.' )$', '', $query);
     }
 
@@ -136,12 +136,84 @@ class SQL{
       $query = "SELECT uid, date FROM MARKERS WHERE lat > " . $latfrom . " AND lat < " . $latto " AND lon > " . $lonfrom " AND lon < " > $lonto . ".";
 
       $resultM = mysql_query($query);
-      
+
       $query = "SELECT uid, date FROM NEWS WHERE lat > " . $latfrom . " AND lat < " . $latto " AND lon > " . $lonfrom " AND lon < " > $lonto . ".";
-      
+
       $resultN = mysql_query($query);
 
       return array ($resultM, $resultN);
   }
 }
+
+/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * 	function name	=	vote
+ * 	parameters		=	$uus (user's unique identifier),
+ * 						$uid (news' unique identifier),
+ * 						$val (-1 for a vote down or 1 for a vote up)
+ * 	return			=	1, when correctly executed
+ * 						n > 1, when more than one news item is found
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ */
+ function vote( $uus, $uid, $val )
+ {
+	$return = 0;			// function return value
+	$votechange = FALSE;	// flag to tell if a vote is changed
+
+	/*
+	 * Finds out if one user (uus) voted for a news item (uid) and
+	 * update this vote, if possible. Else, inserts a new vote.
+	 */
+	$result = select( "VOTES", array("dir"), array("uid", "uus"), array($uid, $uus), "AND" );
+	if ( $row = mysql_fetch_array( $result ) ) {
+
+		 if ( row["dir"] == $val ) {
+			 return
+		 } else {
+			 $votechange = TRUE;
+			 update( "VOTES", array( "uus", "uid" ), array( $uus, $uid ), array( "dir" ), array( $val ) );
+		 }
+
+	} else {
+
+		 insert( "VOTES", array( "uus", "uid", "dir" ), array( $uus, $uid, $val ) );
+
+	}
+
+	/*
+	 * Finds the first (and only valid) news item and update the votes
+	 * counters.
+	 */
+	$result = select( "NEWS", array( "upvt", "dnvt" ), array( "uid" ), array( $uid ), "");
+	if ( $row = mysql_fetch_array( $result ) ) {
+
+		$return += 1;
+		$upvt = $row["upvt"];
+		$dnvt = $row["dnvt"];
+
+		if ( $val == 1 ) {
+			$upvt += 1;
+			if ( $votechange ) {
+				$dnvt -= 1;
+			}
+		} elseif ( $val == -1 ) {
+			$dnvt += 1;
+			if ( $votechange ) {
+				$upvt -= 1;
+			}
+		}
+
+		update( "NEWS", array( "uid" ), array( $uid ), array( "upvt", "dnvt" ), array( $upvt, $dnvt ) );
+
+	}
+
+	/*
+	 * Searches duplicate news items.
+	 */
+	while ( $row = mysql_fetch_array( $result ) ) {
+		$return += 1;
+	}
+
+	return count;
+}
+
 ?>
