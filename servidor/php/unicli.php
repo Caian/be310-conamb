@@ -28,9 +28,11 @@ case "VALU":
     break;
 
 case "POSM":
+	post_marker( $_POST["uus"], $_POST["passw"], $_POST["type"], $_POST["icon"], $_POST["lat"], $_POST["lon"] );
     break;
 
 case "POSN":
+	post_news( $_POST["uus"], $_POST["passw"], $_POST["name"], $_POST["text"],  $_POST["lat"], $_POST["lon"] );
     break;
 }
 
@@ -136,6 +138,32 @@ function validate_user ($username, $password) {
     }
 
 	return $uss;
+}
+
+function post_news( $username, $password, $nname, $ntext, $lat, $lon ){
+	var $uus;
+	if( ($uus = validate_user($username, $password)) <= 0 ){
+		// something about authentication failure here	
+	}
+	
+	$utcd = gettimeofday();
+
+	$uid = $sql->insert( "NEWS", array("uus", "date", "name", "text", "lat", "lon", "upvt", "dnvt"), array($uus, $utcd['sec'], $nname, $ntext, $lat, $lon, 0, 0) );
+
+	update_uid($uid);
+}
+
+function post_marker( $username, $password, $type, $icon, $lat, $lon ){
+	var $uus;
+	if( ($uus = validate_user($username, $password)) <= 0 ){
+		// something about authentication failure here	
+	}
+	
+	$utcd = gettimeofday();
+
+	$uid = $sql->insert( "MARKERS", array("uus", "date", "type", "icon", "lat", "lon"), array($uus, $utcd['sec'], $type, $icon, $lat, $lon) );
+
+	update_uid($uid);
 }
 
 /*

@@ -52,6 +52,7 @@ class SQL{
     $query = eregi_replace(',$', '', $query);
     $query = $query.")";
 
+    $query = clean_query($query);
     mysql_query($query);
     $id = mysql_insert_id();
 
@@ -69,6 +70,7 @@ class SQL{
 
     $query = eregi_replace('(AND )$', '', $query);
 
+    $query = clean_query($query);
     return mysql_query($query);
   }
 
@@ -98,6 +100,7 @@ class SQL{
       $query = eregi_replace('('.$andor.' )$', '', $query);
     }
 
+    $query = clean_query($query);
     return mysql_query($query);
   }
 
@@ -119,6 +122,7 @@ class SQL{
     }
     $query = eregi_replace('(AND )$', '', $query);
 
+    $query = clean_query($query);
     mysql_query($query);
     return $query;
   }
@@ -135,10 +139,12 @@ class SQL{
   function getMarkersAndNews ($latfrom, $lonfrom, $latto, $lonto) {
       $query = "SELECT uid, date FROM MARKERS WHERE lat > " . $latfrom . " AND lat < " . $latto " AND lon > " . $lonfrom " AND lon < " > $lonto . ".";
 
+      $query = clean_query($query);
       $resultM = mysql_query($query);
 
       $query = "SELECT uid, date FROM NEWS WHERE lat > " . $latfrom . " AND lat < " . $latto " AND lon > " . $lonfrom " AND lon < " > $lonto . ".";
 
+      $query = clean_query($query);
       $resultN = mysql_query($query);
 
       return array ($resultM, $resultN);
