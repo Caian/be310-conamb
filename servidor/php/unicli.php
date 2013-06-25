@@ -46,11 +46,12 @@ function update_uid ($sql, $uid) {
  */
 function set_upvote( $sql, $username, $password, $uid )
 {
-	if ( $uus = validate_user( $sql, $username, $password ) <= 0 ) {
+	if ( ($uus = validate_user( $sql, $username, $password )) <= 0 ) {
 		return;
 	}
+    
 	$count = $sql->vote( $uus, $uid, 1 );
-	if ( $count === 1) {
+	if ( $count == 1) {
 		update_uid( $sql, $uid );
 	}
 }
@@ -68,11 +69,12 @@ function set_upvote( $sql, $username, $password, $uid )
  */
 function set_dnvote( $sql, $username, $password, $uid )
 {
-	if ( $uus = validate_user( $sql, $username, $password ) <= 0 ) {
+	if ( ($uus = validate_user( $sql, $username, $password )) <= 0 ) {
 		return;
 	}
+    
 	$count = $sql->vote( $uus, $uid, -1 );
-	if ( $count === 1) {
+	if ( $count == 1) {
 		update_uid( $sql, $uid );
 	}
 }
@@ -81,7 +83,7 @@ function set_dnvote( $sql, $username, $password, $uid )
 function validate_user ($sql, $username, $password) {
     $result = $sql->select ("USERS", array("uus"), array("name", "passw"), array($username, $password), "AND");
 
-	if( $result === false ) echo mysql_error();
+	if( $result == false ) echo mysql_error();
 
     $uus = -1;
     $uuc = 0;
@@ -89,18 +91,18 @@ function validate_user ($sql, $username, $password) {
 	if ($row = mysql_fetch_array($result)) {
 		$uuc++;
 
-		if ($uus === -1)
+		if ($uus == -1)
 			$uus = $row["uus"];
 	}
 
     if ($uuc > 1) {
         //echo "Warning: Duplicated user detected in utalbe";
 	}
-    if ($uus === 1) {
+    if ($uus == 1) {
         //echo "Error: Blocked connection as administrator";
         $uus = -1;
     }
-
+    
 	return $uus;
 }
 

@@ -2,7 +2,7 @@
 include_once 'db.php';
 include_once 'unicli.php';
 
-$sql = new SQL( "aesculetum.db", "conamb", "DSQ8TFqd2Gt75C3c", "conamb" );
+$sql = new SQL( "localhost", "conamb", "conamb123", "conamb" );
 $sql->connect();
 
 /*
