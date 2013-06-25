@@ -52,7 +52,7 @@ class SQL{
     $query = eregi_replace(',$', '', $query);
     $query = $query.")";
 
-    $query = clean_query($query);
+    //$query = mysql_real_escape_string($query);
     mysql_query($query);
     $id = mysql_insert_id();
 
@@ -70,7 +70,7 @@ class SQL{
 
     $query = eregi_replace('(AND )$', '', $query);
 
-    $query = clean_query($query);
+    //$query = mysql_real_escape_string($query);
     return mysql_query($query);
   }
 
@@ -100,7 +100,7 @@ class SQL{
       $query = eregi_replace('('.$andor.' )$', '', $query);
     }
 
-    $query = clean_query($query);
+    //$query = mysql_real_escape_string($query);
     return mysql_query($query);
   }
 
@@ -122,7 +122,7 @@ class SQL{
     }
     $query = eregi_replace('(AND )$', '', $query);
 
-    $query = clean_query($query);
+    //$query = mysql_real_escape_string($query);
     mysql_query($query);
     return $query;
   }
@@ -139,12 +139,12 @@ class SQL{
   function getMarkersAndNews ($latfrom, $lonfrom, $latto, $lonto) {
       $query = "SELECT uid, date FROM MARKERS WHERE lat > " . $latfrom . " lat < " . $latto . " AND lon > " . $lonfrom . " AND lon < " . $lonto . ".";
 
-      $query = clean_query($query);
+      $query = mysql_real_escape_string($query);
       $resultM = mysql_query($query);
 
       $query = "SELECT uid, date FROM NEWS WHERE lat > " . $latfrom . " lat < " . $latto . " AND lon > " . $lonfrom . " AND lon < " . $lonto . ".";
 
-      $query = clean_query($query);
+      $query = mysql_real_escape_string($query);
       $resultN = mysql_query($query);
 
       return array ($resultM, $resultN);
@@ -172,7 +172,7 @@ class SQL{
 	 $result = select( "VOTES", array("dir"), array("uid", "uus"), array($uid, $uus), "AND" );
 	 if ( $row = mysql_fetch_array( $result ) ) {
 
-		 if ( $row["dir"] == $val ) {
+		 if ( $row["dir"] === $val ) {
 			return;
 		 } else {
 			 $votechange = TRUE;
@@ -182,7 +182,7 @@ class SQL{
 	 } else {
 
 		 $query = "INSERT INTO VOTES (`uus`,`uid`,`dir`) VALUES ('".$uus."','".$uid."','".$val."');";
-		 $query = clean_query( $query );
+		 $query = mysql_real_escape_string( $query );
 		 mysql_query( $query );
 
 	 }
@@ -198,12 +198,12 @@ class SQL{
 		 $upvt = $row["upvt"];
 		 $dnvt = $row["dnvt"];
 
-		 if ( $val == 1 ) {
+		 if ( $val === 1 ) {
 			 $upvt += 1;
 			 if ( $votechange ) {
 				 $dnvt -= 1;
 			 }
-		 } elseif ( $val == -1 ) {
+		 } elseif ( $val === -1 ) {
 			 $dnvt += 1;
 			 if ( $votechange ) {
 				 $upvt -= 1;
@@ -220,6 +220,7 @@ class SQL{
 	 while ( $row = mysql_fetch_array( $result ) ) {
 		 $return += 1;
 	 }
+
 
  	 return $return;
  }
