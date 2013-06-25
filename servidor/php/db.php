@@ -172,16 +172,18 @@ class SQL{
 	$result = select( "VOTES", array("dir"), array("uid", "uus"), array($uid, $uus), "AND" );
 	if ( $row = mysql_fetch_array( $result ) ) {
 
-		 if ( row["dir"] == $val ) {
-			 return
-		 } else {
-			 $votechange = TRUE;
-			 update( "VOTES", array( "uus", "uid" ), array( $uus, $uid ), array( "dir" ), array( $val ) );
-		 }
+		if ( row["dir"] == $val ) {
+			return
+		} else {
+			$votechange = TRUE;
+			update( "VOTES", array( "uus", "uid" ), array( $uus, $uid ), array( "dir" ), array( $val ) );
+		}
 
 	} else {
 
-		 insert( "VOTES", array( "uus", "uid", "dir" ), array( $uus, $uid, $val ) );
+		$query = "INSERT INTO VOTES (`uus`,`uid`,`dir`) VALUES ('".$uus."','".$uid."','"$val"');";
+		$query = clean_query( $query );
+		mysql_query( $query );
 
 	}
 
@@ -219,7 +221,7 @@ class SQL{
 		$return += 1;
 	}
 
-	return count;
+	return $return;
 }
 
 ?>
