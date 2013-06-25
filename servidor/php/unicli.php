@@ -1,47 +1,10 @@
 <?php
-$cmd = $_POST["cmd"];
-
-switch ($cmd) {
-case "NEAR":
-    update_location($_POST["latfrom"], $_POST["lonfrom"], $_POST["latto"], $_POST["lonto"]);
-    break;
-
-case "GETD":
-    update_uid($_POST["uid"]);
-    break;
-
-case "UPVT":
-	set_upvote( $_POST["uus"], $_POST["passw"], $_POST["uid"] );
-    break;
-
-case "DNVT":
-	set_dnvote( $_POST["uus"], $_POST["passw"], $_POST["uid"] );
-    break;
-
-case "VALU":
-	$uus = validate_user($_POST["uus"], $_POST["passw"]);
-	if ($uus > 1) {
-		send ("UUSID ".$uus."\n");
-	} else {
-		send("UFAIL\n");
-	}
-    break;
-
-case "POSM":
-	post_marker( $_POST["uus"], $_POST["passw"], $_POST["type"], $_POST["icon"], $_POST["lat"], $_POST["lon"] );
-    break;
-
-case "POSN":
-	post_news( $_POST["uus"], $_POST["passw"], $_POST["name"], $_POST["text"],  $_POST["lat"], $_POST["lon"] );
-    break;
-}
 
 function update_location ($latfrom, $lonfrom, $latto, $lonto) {
     $results = $sql->getMarkersAndNews ($latfrom, $lonfrom, $latto, $lonto);
 
     while ($row = mysql_fetch_array($results[0])) {
         $response = "NEAR M " . $row["uid"] . " " . $row["date"] . "\n";
-        echo "Sending " $response;
         send ($response);
     }
 
@@ -82,7 +45,6 @@ function update_uid ($uid) {
  */
 function set_upvote( $username, $password, $uid )
 {
-    var $uus;
 	if ( $uus = validate_user( $username, $password ) <= 0 ) {
 		return;
 	}
@@ -105,7 +67,6 @@ function set_upvote( $username, $password, $uid )
  */
 function set_dnvote( $username, $password, $uid )
 {
-	var $uus;
 	if ( $uus = validate_user( $username, $password ) <= 0 ) {
 		return;
 	}
@@ -130,10 +91,10 @@ function validate_user ($username, $password) {
     }
 
     if ($uuc > 1)
-        echo "Warning: Duplicated user detected in utalbe";
+        //echo "Warning: Duplicated user detected in utalbe";
 
     if ($uus == 1) {
-        echo "Error: Blocked connection as administrator";
+        //echo "Error: Blocked connection as administrator";
         $uus = -1;
     }
 
@@ -141,11 +102,10 @@ function validate_user ($username, $password) {
 }
 
 function post_news( $username, $password, $nname, $ntext, $lat, $lon ){
-	var $uus;
 	if( ($uus = validate_user($username, $password)) <= 0 ){
-		// something about authentication failure here	
+		// something about authentication failure here
 	}
-	
+
 	$utcd = gettimeofday();
 
 	$uid = $sql->insert( "NEWS", array("uus", "date", "name", "text", "lat", "lon", "upvt", "dnvt"), array($uus, $utcd['sec'], $nname, $ntext, $lat, $lon, 0, 0) );
@@ -154,11 +114,10 @@ function post_news( $username, $password, $nname, $ntext, $lat, $lon ){
 }
 
 function post_marker( $username, $password, $type, $icon, $lat, $lon ){
-	var $uus;
 	if( ($uus = validate_user($username, $password)) <= 0 ){
-		// something about authentication failure here	
+		// something about authentication failure here
 	}
-	
+
 	$utcd = gettimeofday();
 
 	$uid = $sql->insert( "MARKERS", array("uus", "date", "type", "icon", "lat", "lon"), array($uus, $utcd['sec'], $type, $icon, $lat, $lon) );

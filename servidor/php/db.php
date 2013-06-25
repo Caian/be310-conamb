@@ -137,19 +137,19 @@ class SQL{
 
   // Get markers and news inside a given area
   function getMarkersAndNews ($latfrom, $lonfrom, $latto, $lonto) {
-      $query = "SELECT uid, date FROM MARKERS WHERE lat > " . $latfrom . " AND lat < " . $latto " AND lon > " . $lonfrom " AND lon < " > $lonto . ".";
+      $query = "SELECT uid, date FROM MARKERS WHERE lat > " . $latfrom . " lat < " . $latto . " AND lon > " . $lonfrom . " AND lon < " . $lonto . ".";
 
       $query = clean_query($query);
       $resultM = mysql_query($query);
 
-      $query = "SELECT uid, date FROM NEWS WHERE lat > " . $latfrom . " AND lat < " . $latto " AND lon > " . $lonfrom " AND lon < " > $lonto . ".";
+      $query = "SELECT uid, date FROM NEWS WHERE lat > " . $latfrom . " lat < " . $latto . " AND lon > " . $lonfrom . " AND lon < " . $lonto . ".";
 
       $query = clean_query($query);
       $resultN = mysql_query($query);
 
       return array ($resultM, $resultN);
   }
-}
+
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * 	function name	=	vote
@@ -160,68 +160,68 @@ class SQL{
  * 						n > 1, when more than one news item is found
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  */
- function vote( $uus, $uid, $val )
- {
-	$return = 0;			// function return value
-	$votechange = FALSE;	// flag to tell if a vote is changed
+  function vote( $uus, $uid, $val )
+  {
+	 $return = 0;			// function return value
+	 $votechange = FALSE;	// flag to tell if a vote is changed
 
-	/*
-	 * Finds out if one user (uus) voted for a news item (uid) and
-	 * update this vote, if possible. Else, inserts a new vote.
-	 */
-	$result = select( "VOTES", array("dir"), array("uid", "uus"), array($uid, $uus), "AND" );
-	if ( $row = mysql_fetch_array( $result ) ) {
+	 /*
+	  * Finds out if one user (uus) voted for a news item (uid) and
+	  * update this vote, if possible. Else, inserts a new vote.
+	  */
+	 $result = select( "VOTES", array("dir"), array("uid", "uus"), array($uid, $uus), "AND" );
+	 if ( $row = mysql_fetch_array( $result ) ) {
 
-		if ( row["dir"] == $val ) {
-			return
-		} else {
-			$votechange = TRUE;
-			update( "VOTES", array( "uus", "uid" ), array( $uus, $uid ), array( "dir" ), array( $val ) );
-		}
+		 if ( $row["dir"] == $val ) {
+			return;
+		 } else {
+			 $votechange = TRUE;
+			 update( "VOTES", array( "uus", "uid" ), array( $uus, $uid ), array( "dir" ), array( $val ) );
+		 }
 
-	} else {
+	 } else {
 
-		$query = "INSERT INTO VOTES (`uus`,`uid`,`dir`) VALUES ('".$uus."','".$uid."','"$val"');";
-		$query = clean_query( $query );
-		mysql_query( $query );
+		 $query = "INSERT INTO VOTES (`uus`,`uid`,`dir`) VALUES ('".$uus."','".$uid."','".$val."');";
+		 $query = clean_query( $query );
+		 mysql_query( $query );
 
-	}
+	 }
 
-	/*
-	 * Finds the first (and only valid) news item and update the votes
-	 * counters.
-	 */
-	$result = select( "NEWS", array( "upvt", "dnvt" ), array( "uid" ), array( $uid ), "");
-	if ( $row = mysql_fetch_array( $result ) ) {
+	 /*
+	  * Finds the first (and only valid) news item and update the votes
+	  * counters.
+	  */
+	 $result = select( "NEWS", array( "upvt", "dnvt" ), array( "uid" ), array( $uid ), "");
+	 if ( $row = mysql_fetch_array( $result ) ) {
 
-		$return += 1;
-		$upvt = $row["upvt"];
-		$dnvt = $row["dnvt"];
+		 $return += 1;
+		 $upvt = $row["upvt"];
+		 $dnvt = $row["dnvt"];
 
-		if ( $val == 1 ) {
-			$upvt += 1;
-			if ( $votechange ) {
-				$dnvt -= 1;
-			}
-		} elseif ( $val == -1 ) {
-			$dnvt += 1;
-			if ( $votechange ) {
-				$upvt -= 1;
-			}
-		}
+		 if ( $val == 1 ) {
+			 $upvt += 1;
+			 if ( $votechange ) {
+				 $dnvt -= 1;
+			 }
+		 } elseif ( $val == -1 ) {
+			 $dnvt += 1;
+			 if ( $votechange ) {
+				 $upvt -= 1;
+			 }
+		 }
 
-		update( "NEWS", array( "uid" ), array( $uid ), array( "upvt", "dnvt" ), array( $upvt, $dnvt ) );
+		 update( "NEWS", array( "uid" ), array( $uid ), array( "upvt", "dnvt" ), array( $upvt, $dnvt ) );
 
-	}
+	 }
 
-	/*
-	 * Searches duplicate news items.
-	 */
-	while ( $row = mysql_fetch_array( $result ) ) {
-		$return += 1;
-	}
+	 /*
+	  * Searches duplicate news items.
+	  */
+	 while ( $row = mysql_fetch_array( $result ) ) {
+		 $return += 1;
+	 }
 
-	return $return;
+ 	 return $return;
+ }
 }
-
 ?>
