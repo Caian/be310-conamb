@@ -104,7 +104,7 @@ function validate_user ($sql, $username, $password) {
 	error_log("Warning: Duplicated user " . $username . "\n", 3, "conamb.log");
 	}
     if ($uus == 1) {
-	error_log("Blocked connection as administrator from " . $_SERVER['REMOTE_ADDR'] "\n", 3, "conamb.log");
+	error_log("Blocked connection as administrator from " . $_SERVER['REMOTE_ADDR'] . "\n", 3, "conamb.log");
         $uus = -1;
     }
     
