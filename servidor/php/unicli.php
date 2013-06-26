@@ -47,10 +47,12 @@ function update_uid ($sql, $uid) {
 function set_upvote( $sql, $username, $password, $uid )
 {
 	if ( ($uus = validate_user( $sql, $username, $password )) <= 0 ) {
+		error_log("Authentication failure from " . $_SERVER['REMOTE_ADDR'] . "\n", 3, "conamb.log");
 		return;
 	}
     
 	$count = $sql->vote( $uus, $uid, 1 );
+	error_log("Up voted " . $uid . " from " . $_SERVER['REMOTE_ADDR'] . "\n", 3, "conamb.log");
 	if ( $count == 1) {
 		update_uid( $sql, $uid );
 	}
@@ -70,10 +72,12 @@ function set_upvote( $sql, $username, $password, $uid )
 function set_dnvote( $sql, $username, $password, $uid )
 {
 	if ( ($uus = validate_user( $sql, $username, $password )) <= 0 ) {
+		error_log("Authentication failure from " . $_SERVER['REMOTE_ADDR'] . "\n", 3, "conamb.log");
 		return;
 	}
     
 	$count = $sql->vote( $uus, $uid, -1 );
+	error_log("Down voted " . $uid . " from " . $_SERVER['REMOTE_ADDR'] . "\n", 3, "conamb.log");
 	if ( $count == 1) {
 		update_uid( $sql, $uid );
 	}
@@ -91,15 +95,16 @@ function validate_user ($sql, $username, $password) {
 	if ($row = mysql_fetch_array($result)) {
 		$uuc++;
 
-		if ($uus == -1)
+		if ($uus == -1){
 			$uus = $row["uus"];
+		}
 	}
 
     if ($uuc > 1) {
-        //echo "Warning: Duplicated user detected in utalbe";
+	error_log("Warning: Duplicated user " . $username . "\n", 3, "conamb.log");
 	}
     if ($uus == 1) {
-        //echo "Error: Blocked connection as administrator";
+	error_log("Blocked connection as administrator from " . $_SERVER['REMOTE_ADDR'] "\n", 3, "conamb.log");
         $uus = -1;
     }
     
@@ -108,26 +113,30 @@ function validate_user ($sql, $username, $password) {
 
 function post_news( $sql, $username, $password, $nname, $ntext, $lat, $lon ){
 	if( ($uus = validate_user($sql, $username, $password)) <= 0 ){
-		// something about authentication failure here
+		error_log("Authentication failure from " . $_SERVER['REMOTE_ADDR'] . "\n", 3, "conamb.log");
 	}
+	else{
+		$utcd = gettimeofday();
 
-	$utcd = gettimeofday();
+		$uid = $sql->insert( "NEWS", array("uus", "date", "name", "text", "lat", "lon", "upvt", "dnvt"), array($uus, $utcd['sec'], $nname, $ntext, $lat, $lon, "0", "0") );
+		error_log("NEWS " . $uid . " inserted from " . $_SERVER['REMOTE_ADDR'] . "\n", 3, "conamb.log");
 
-	$uid = $sql->insert( "NEWS", array("uus", "date", "name", "text", "lat", "lon", "upvt", "dnvt"), array($uus, $utcd['sec'], $nname, $ntext, $lat, $lon, "0", "0") );
-
-	update_uid($sql, $uid);
+		update_uid($sql, $uid);
+	}
 }
 
 function post_marker( $sql, $username, $password, $type, $icon, $lat, $lon ){
 	if( ($uus = validate_user($sql, $username, $password)) <= 0 ){
-		// something about authentication failure here
+		error_log("Authentication failure from " . $_SERVER['REMOTE_ADDR'] . "\n", 3, "conamb.log");
 	}
+	else{
+		$utcd = gettimeofday();
 
-	$utcd = gettimeofday();
+		$uid = $sql->insert( "MARKERS", array("uus", "date", "type", "icon", "lat", "lon"), array($uus, $utcd['sec'], $type, $icon, $lat, $lon) );
+		error_log("MARKER " . $uid . " inserted from " . $_SERVER['REMOTE_ADDR'] . "\n", 3, "conamb.log");		
 
-	$uid = $sql->insert( "MARKERS", array("uus", "date", "type", "icon", "lat", "lon"), array($uus, $utcd['sec'], $type, $icon, $lat, $lon) );
-
-	update_uid($sql, $uid);
+		update_uid($sql, $uid);
+	}
 }
 
 /*

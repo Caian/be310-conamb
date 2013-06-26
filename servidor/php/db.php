@@ -52,7 +52,6 @@ class SQL{
     $query = eregi_replace(',$', '', $query);
     $query = $query.")";
 
-    //$query = mysql_real_escape_string($query);
     mysql_query($query);
     $id = mysql_insert_id();
 
@@ -70,7 +69,6 @@ class SQL{
 
     $query = eregi_replace('(AND )$', '', $query);
 
-    //$query = mysql_real_escape_string($query);
     return mysql_query($query);
   }
 
@@ -100,7 +98,6 @@ class SQL{
       $query = eregi_replace('('.$andor.' )$', '', $query);
     }
 
-    //$query = mysql_real_escape_string($query);
     return mysql_query($query);
   }
 
@@ -122,7 +119,6 @@ class SQL{
     }
     $query = eregi_replace('(AND )$', '', $query);
 
-    //$query = mysql_real_escape_string($query);
     mysql_query($query);
     return $query;
   }
