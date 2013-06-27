@@ -111,7 +111,7 @@ function validate_user ($sql, $username, $password) {
 	return $uus;
 }
 
-function post_news( $sql, $username, $password, $nname, $ntext, $lat, $lon ){
+function post_news( $sql, $username, $password, $nname, $ntext, $lat, $lon, $image ){
 	if( ($uus = validate_user($sql, $username, $password)) <= 0 ){
 		error_log("Authentication failure from " . $_SERVER['REMOTE_ADDR'] . "\n", 3, "conamb.log");
 	}
@@ -119,6 +119,11 @@ function post_news( $sql, $username, $password, $nname, $ntext, $lat, $lon ){
 		$utcd = gettimeofday();
 
 		$uid = $sql->insert( "NEWS", array("uus", "date", "name", "text", "lat", "lon", "upvt", "dnvt"), array($uus, $utcd['sec'], $nname, $ntext, $lat, $lon, "0", "0") );
+		if($image){
+			$filename = $uid . ".jpg";
+			move_uploaded_file($filename, $image);
+		}
+
 		error_log("NEWS " . $uid . " inserted from " . $_SERVER['REMOTE_ADDR'] . "\n", 3, "conamb.log");
 
 		update_uid($sql, $uid);

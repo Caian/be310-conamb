@@ -45,7 +45,7 @@ case "POSM":
     break;
 
 case "POSN":
-	post_news( $sql, $_POST["uus"], $_POST["passw"], $_POST["name"], $_POST["text"],  $_POST["lat"], $_POST["lon"] );
+	post_news( $sql, $_POST["uus"], $_POST["passw"], $_POST["name"], $_POST["text"],  $_POST["lat"], $_POST["lon"], $_FILES['image']['name'] );
     break;
 }
 
