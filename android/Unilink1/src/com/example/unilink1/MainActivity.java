@@ -16,6 +16,7 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.VisibleRegion;
 
 import android.app.AlertDialog;
 import android.app.AlertDialog.Builder;
@@ -39,6 +40,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 	// Variáveis -------------------------------------------
 	
 	public final static String LAST_LOCATION = "location.info";
+	public final static String DUMMYFILE = "dummy";
 	
 	//private Menu menu;
 	private GoogleMap map;
@@ -46,8 +48,6 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 	private static LatLng location;
 	private static PinListener pinListener = null;
 	private static Context context = null;
-	private int latq[];
-	private int lonq[];
 	private Boolean autoMove = true;
 	
 	private final int LOGIN_CODE = 2;
@@ -71,15 +71,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 		
 		MainActivity.pinListener = this;
 		MainActivity.context = this;
-		
-		this.latq = new int[2];
-		this.lonq = new int[2];
-		
-		this.latq[0] = 1000;
-		this.latq[1] = 1000;
-		this.lonq[0] = 1000;
-		this.lonq[1] = 1000;
-		
+
 		this.map = ((SupportMapFragment)getSupportFragmentManager().findFragmentById(R.id.map))
 		        .getMap();
 		
@@ -110,7 +102,16 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 		} catch (FileNotFoundException e) {
 			// Nada...
 		} catch (IOException e) {
-			// Hue?
+			// Nada...
+		}
+	    
+	    try {
+			FileOutputStream fos = openFileOutput(DUMMYFILE, 
+					Context.MODE_PRIVATE);
+			PrintStream s = new PrintStream(fos);
+			s.close();
+		} catch (FileNotFoundException e) {
+			// Nada...
 		}
 	}
 	
@@ -158,36 +159,28 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 			
 			MainActivity.location = arg0;
 			
+			VisibleRegion vr = this.map.getProjection().getVisibleRegion();
+			double left = vr.latLngBounds.southwest.longitude;
+			double top = vr.latLngBounds.northeast.latitude;
+			double right = vr.latLngBounds.northeast.longitude;
+			double bottom = vr.latLngBounds.southwest.latitude;
+			
 			UnilinkDB db = UnilinkDB.getDatabase();
+			db.updateNear(top, left, bottom, right);
 			
-			int latq2[] = new int[2];
-			int lonq2[] = new int[2];
-			
-			db.compressQuadrant(MainActivity.location.latitude, 
-					MainActivity.location.longitude, 
-					latq2, lonq2);
-			
-			if (latq[0] != latq2[0] || latq[1] != latq2[1] ||
-					lonq[0] != lonq2[0] || lonq[1] != lonq2[1]) {
-				this.latq = latq2;
-				this.lonq = lonq2;
-				
-				UnilinkDB.getDatabase().updateNear(latq, lonq);
-				
-				try {
-					FileOutputStream fos = openFileOutput(LAST_LOCATION, 
-							Context.MODE_PRIVATE);
-					PrintStream s = new PrintStream(fos);
-					s.println(MainActivity.location.latitude);
-					s.println(MainActivity.location.longitude);
-					s.close();
-				} catch (FileNotFoundException e) {
-					// Nada...
-				}
-				
-				if (this.autoMove) 
-					moveToLocation();
+			try {
+				FileOutputStream fos = openFileOutput(LAST_LOCATION, 
+						Context.MODE_PRIVATE);
+				PrintStream s = new PrintStream(fos);
+				s.println(MainActivity.location.latitude);
+				s.println(MainActivity.location.longitude);
+				s.close();
+			} catch (FileNotFoundException e) {
+				// Nada...
 			}
+			
+			if (this.autoMove) 
+				moveToLocation();
 		}
 	}
 

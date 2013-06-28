@@ -9,8 +9,30 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
+import java.security.InvalidAlgorithmParameterException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Scanner;
 import java.util.Vector;
+
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.ResponseHandler;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.mime.HttpMultipartMode;
+import org.apache.http.entity.mime.MultipartEntity;
+import org.apache.http.entity.mime.content.ContentBody;
+import org.apache.http.entity.mime.content.FileBody;
+import org.apache.http.entity.mime.content.StringBody;
+import org.apache.http.impl.client.BasicResponseHandler;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.message.BasicNameValuePair;
+
 import com.google.android.gms.maps.model.Marker;
 
 import android.content.Context;
@@ -33,6 +55,7 @@ public class UnilinkDB {
 	
 	// Variáveis -------------------------------------------
 	
+	private final String serveraddr = "http://atum.caco.ic.unicamp.br/be310-conamb/servidor/php/server.php";
 	private final String USERFILE = "user.info";
 	
 	private HashMap<Marker, BasePin> hpins;
@@ -41,7 +64,6 @@ public class UnilinkDB {
 	private String username = "";
 	private String password = "";
 	private Boolean validated = false;
-	private TCPClient client;
 	
 	// Métodos ---------------------------------------------
 	
@@ -50,7 +72,6 @@ public class UnilinkDB {
 	// -----------------------------------------------------
 	private UnilinkDB()
 	{
-		this.client = new TCPClient();
 		this.hpins = new HashMap<Marker, BasePin>();
 		this.vpins = new SparseArray<BasePin>();
 	}
@@ -105,33 +126,18 @@ public class UnilinkDB {
 	
 	
 	// -----------------------------------------------------
-	// Comprime a posição em quadrante
-	// -----------------------------------------------------
-	public void compressQuadrant(double latitude, double longitude, 
-			int latq[], int lonq[]) {
-		latitude += 90;
-		longitude += 180;
-		
-		latq[0] = (int)latitude;
-		latq[1] = (int)(60.0 * (latitude - latq[0]));
-		
-		lonq[0] = (int)longitude;
-		lonq[1] = (int)(60.0 * (longitude - lonq[0]));
-	}
-	
-	
-	// -----------------------------------------------------
 	// Atualiza os pinos próximos a uma latitude/longitude
 	// -----------------------------------------------------
-	public void updateNear(int latq[], int lonq[]) {
-		String lats = String.format("%03d", latq[0]) + 
-				String.format("%02d", latq[1]);
-		String lons = String.format("%03d", lonq[0]) + 
-				String.format("%02d", lonq[1]);
+	public void updateNear(double latfrom, double lonfrom, double latto, double lonto) {
 		
 		// Up we go...
 		LongUpdateNearPins updater = new LongUpdateNearPins();
-		updater.execute("NEAR" + lats + lons);
+		updater.execute(
+				new BasicNameValuePair("latfrom", ((Double)latfrom).toString()),
+				new BasicNameValuePair("lonfrom", ((Double)lonfrom).toString()),
+				new BasicNameValuePair("latto", ((Double)latto).toString()),
+				new BasicNameValuePair("lonto", ((Double)lonto).toString())
+				);
 	}
 
 	
@@ -272,34 +278,67 @@ public class UnilinkDB {
 		if (!hasUser())
 			return -1;
 		
-		synchronized (client) {
+		int code = -1;
 		
-			if (!client.open())
-				return -2;
+		HttpClient httpclient = null;
+		HttpPost httppost = null;
+		HttpResponse response = null;
+		HttpEntity entity = null;
+		InputStreamReader stream = null;
+		BufferedReader reader = null;
+		
+		try {
+			httpclient = new DefaultHttpClient();
+			httppost = new HttpPost(serveraddr);
 			
-			// Monta a mensagem
-			client.sendMessage("VALU" + encodeString(this.username) + 
-					" " + encodeString(this.password));
+			List<NameValuePair> parameters = new ArrayList<NameValuePair>();
+			parameters.add(new BasicNameValuePair("cmd","VALU"));
+			parameters.add(new BasicNameValuePair("uus", this.username));
+			parameters.add(new BasicNameValuePair("passw", this.password));
+			httppost.setEntity(new UrlEncodedFormEntity(parameters));
 			
-			int code;
+			response = httpclient.execute(httppost);
+			entity = response.getEntity();
+			stream = new InputStreamReader(entity.getContent());
+			reader = new BufferedReader(stream);
 			
-			while(true) {
-				String response = client.readLine();
-				if (response == null)
-					return -1;
-				if (response.startsWith("UUSID")) {
-					this.validated = true;
-					code = 0;
-					break;
-				} else if (response.compareTo("UFAIL") == 0) {
-					code = -3;
-					break;
-				}
+			StringBuilder total = new StringBuilder();
+			String line;
+			
+			while ((line = reader.readLine()) != null) {
+			    total.append(line);
+			}
+			line = total.toString();
+			
+			if (line == null)
+				return -1;
+			if (line.startsWith("UUSID")) {
+				this.validated = true;
+				code = 0;
+			} else if (line.compareTo("UFAIL") == 0) {
+				code = -3;
 			}
 			
-			client.close();
-			return code;
+		} catch (ClientProtocolException ex) {
+			// Problema com a requisição
+			ex.printStackTrace();
+		} catch (IOException ex) {
+			// Problema com a conexão
+			ex.printStackTrace();
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		} finally {
+			if (reader != null) {
+				try {
+					reader.close();
+				} catch (Exception ex) {
+					// Não importa
+				}
+				reader = null;
+			}
 		}
+		
+		return code;
 	}
 	
 	
@@ -335,8 +374,14 @@ public class UnilinkDB {
 	public void share(Editable name, Editable text, double latitude, 
 			double longitude, String sharePicture) {
 		LongShare s = new LongShare();
-		s.execute(name.toString(), text.toString(), sharePicture, 
-		((Double)latitude).toString(), ((Double)longitude).toString());
+		
+		s.execute(
+				new BasicNameValuePair("image", sharePicture),
+				new BasicNameValuePair("name", name.toString()),
+				new BasicNameValuePair("text", text.toString()),
+				new BasicNameValuePair("lat", ((Double)latitude).toString()),
+				new BasicNameValuePair("lon", ((Double)longitude).toString())
+				);
 	}
 	
 	
@@ -346,8 +391,12 @@ public class UnilinkDB {
 	public void mark(int type, int icon, double latitude, 
 			double longitude) {
 		LongMark m = new LongMark();
-		m.execute(((Integer)type).toString(), ((Integer)icon).toString(), 
-		((Double)latitude).toString(), ((Double)longitude).toString());
+		m.execute(
+				new BasicNameValuePair("type", ((Integer)type).toString()),
+				new BasicNameValuePair("icon", ((Integer)icon).toString()),
+				new BasicNameValuePair("lat", ((Double)latitude).toString()),
+				new BasicNameValuePair("lon", ((Double)longitude).toString())
+				);
 	}
 	
 
@@ -367,7 +416,7 @@ public class UnilinkDB {
 	// -----------------------------------------------------
 	// Tarefa assíncrona de baixar novos pinos
 	// -----------------------------------------------------
-	public class LongUpdateNearPins extends AsyncTask<String, Integer, Boolean> {
+	public class LongUpdateNearPins extends AsyncTask<NameValuePair, Integer, Boolean> {
 		
 		// Variáveis -------------------------------------------
 		
@@ -376,46 +425,114 @@ public class UnilinkDB {
 		// Métodos ---------------------------------------------
 		
 		@Override
-		protected Boolean doInBackground(String... arg0) {
-			
-			synchronized (client) {
-			
-				if (!client.open())
-					return false;
+		protected Boolean doInBackground(NameValuePair... arg0) {
+			try {
+				HttpClient httpclient = null;
+				HttpPost httppost = null;
+				HttpResponse response = null;
+				HttpEntity entity = null;
+				InputStreamReader stream = null;
+				BufferedReader reader = null;
+				BasePin pin;
 				
-				// Monta a mensagem
-				client.sendMessage(arg0[0]);
+				httpclient = new DefaultHttpClient();
+				httppost = new HttpPost(serveraddr);
 				
-				String response;
-				while (true) {
-					response = client.readLine();
-					if (response == null)
-						break;
-					if (response.compareTo("EORQ") == 0)
-						break;
-					BasePin p = parseNearResponse(response);
-					if (p != null) pins.add(p);
+				List<NameValuePair> parameters = new ArrayList<NameValuePair>();
+				parameters.add(new BasicNameValuePair("cmd","NEAR"));
+				for (NameValuePair p : arg0) parameters.add(p);
+				httppost.setEntity(new UrlEncodedFormEntity(parameters));
+				
+				try {
+					response = httpclient.execute(httppost);
+					entity = response.getEntity();
+					stream = new InputStreamReader(entity.getContent());
+					reader = new BufferedReader(stream);
+					
+					while (true) {
+						String line = reader.readLine();
+						if (line == null)
+							break;
+						if (line.compareTo("EORQ") == 0)
+							break;
+						pin = parseNearResponse(line);
+						if (pin != null) pins.add(pin);
+					}
+				} catch (ClientProtocolException ex) {
+					// Problema com a requisição
+				} catch (IOException ex) {
+					// Problema com a conexão
+				} finally {
+					if (reader != null) {
+						try {
+							reader.close();
+						} catch (Exception ex) {
+							// Não importa
+						}
+						reader = null;
+					}
 				}
 				
 				// Filter
 				
 				for (int i = 0; i < pins.size(); i++) {
-					client.sendMessage(String.format("GETD%d",pins.get(i).getUid()));
-					response = client.readLine();
-					BasePin p = null;
-					if (response != null)
-						p = parseGetResponse(response);
-					if (p == null) {
+					
+					httpclient = new DefaultHttpClient();
+					httppost = new HttpPost(serveraddr);
+					String suid = String.format("%d", pins.get(i).getUid());
+					parameters.clear();
+					parameters.add(new BasicNameValuePair("cmd","GETD"));
+					parameters.add(new BasicNameValuePair("uid",suid));
+					httppost.setEntity(new UrlEncodedFormEntity(parameters));
+					
+					try {
+						pin = null;
+						response = httpclient.execute(httppost);
+						entity = response.getEntity();
+						stream = new InputStreamReader(entity.getContent());
+						reader = new BufferedReader(stream);
+						StringBuilder total = new StringBuilder();
+						String line;
+						
+						while ((line = reader.readLine()) != null) {
+						    total.append(line);
+						}
+						line = total.toString();
+						
+						if (line != null)
+							pin = parseGetResponse(line);
+						
+						if (pin == null) {
+							pins.remove(i--);
+						}
+						else {
+							pins.set(i, pin);
+						}
+						
+					} catch (ClientProtocolException ex) {
+						// Problema com a requisição
+						// Remove pino incompleto
 						pins.remove(i--);
-					}
-					else {
-						pins.set(i, p);
+					} catch (IOException ex) {
+						// Problema com a conexão
+						// Remove pino incompleto
+						pins.remove(i--);
+					} finally {
+						if (reader != null) {
+							try {
+								reader.close();
+							} catch (Exception ex) {
+								// Não importa
+							}
+							reader = null;
+						}
 					}
 				}
-				
-				client.close();
-				return true;
+			} catch (Exception e) {
+				e.printStackTrace();
 			}
+			
+			return true;
 		}
 
 		@Override
@@ -470,33 +587,48 @@ public class UnilinkDB {
 	
 		@Override
 		protected Boolean doInBackground(Long... params) {
-			synchronized (client) {
+			
+			String cmd;
+			HttpClient httpclient = null;
+			HttpPost httppost = null;
+			HttpResponse response = null;
+			HttpEntity entity = null;
+			InputStreamReader stream = null;
+			BufferedReader reader = null;
+			
+			if (params[0] == 1) {
+				cmd = "UPVT";
+			}else if (params[0] == -1) {
+				cmd = "DNVT";
+			}else {
+				return false;
+			}
+			
+			try {
+				httpclient = new DefaultHttpClient();
+				httppost = new HttpPost(serveraddr);
 				
-				if (!client.open())
-					return false;
+				List<NameValuePair> parameters = new ArrayList<NameValuePair>();
+				parameters.add(new BasicNameValuePair("cmd",cmd));
+				parameters.add(new BasicNameValuePair("uus", username));
+				parameters.add(new BasicNameValuePair("passw", password));
 				
-				String s;
+				response = httpclient.execute(httppost);
+				entity = response.getEntity();
+				stream = new InputStreamReader(entity.getContent());
+				reader = new BufferedReader(stream);
+				StringBuilder total = new StringBuilder();
+				String line;
 				
-				if (params[0] == 1) {
-					s = "UPVT";
-				}else if (params[0] == -1) {
-					s = "DNVT";
-				}else {
-					return false;
+				while ((line = reader.readLine()) != null) {
+				    total.append(line);
 				}
-				
-				 s = s + encodeString(username) + 
-					" " + encodeString(password) + " " + params[1];
-				
-				// Monta a mensagem
-				client.sendMessage(s);
+				line = total.toString();
 
-				// Não me importo com o resultado por enquanto
-				String response = client.readLine();
-				if (response == null)
+				if (line == null)
 					return false;
 				
-				NewsPin pin = (NewsPin) parseGetResponse(response);
+				NewsPin pin = (NewsPin) parseGetResponse(line);
 				if (pin == null)
 					return false;
 
@@ -504,9 +636,26 @@ public class UnilinkDB {
 				this.old.setUpVotes(pin.getUpVotes());
 				this.old.setDownVotes(pin.getDownVotes());
 				
-				client.close();
-				return true;
+			} catch (ClientProtocolException ex) {
+				// Problema com a requisição
+				ex.printStackTrace();
+			} catch (IOException ex) {
+				// Problema com a conexão
+				ex.printStackTrace();
+			} catch (Exception ex) {
+				ex.printStackTrace();
+			} finally {
+				if (reader != null) {
+					try {
+						reader.close();
+					} catch (Exception ex) {
+						// Não importa
+					}
+					reader = null;
+				}
 			}
+			
+			return true;
 		}
 
 		@Override
@@ -519,61 +668,74 @@ public class UnilinkDB {
 	// -----------------------------------------------------
 	// Tarefa assíncrona compartilhar noticia
 	// -----------------------------------------------------
-	public class LongShare extends AsyncTask<String, Void, Boolean> {
+	public class LongShare extends AsyncTask<NameValuePair, Void, Boolean> {
 
 		private NewsPin pin;
 		private String sharep;
 
 		@Override
-		protected Boolean doInBackground(String... params) {
-			synchronized (client) {
+		protected Boolean doInBackground(NameValuePair... params) {
+			
+			HttpClient httpclient = null;
+			HttpPost httppost = null;
+			HttpResponse response = null;
+			MultipartEntity entity = null;
+			InputStreamReader stream = null;
+			BufferedReader reader = null;
+			
+			try {
 				
-				if (!client.open())
-					return false;
+				httpclient = new DefaultHttpClient();
+				httppost = new HttpPost(serveraddr);
 				
-				this.sharep = params[2];
-				File f = new File(this.sharep);
+				List<NameValuePair> parameters = new ArrayList<NameValuePair>();
+				parameters.add(new BasicNameValuePair("cmd","POSN"));
+				parameters.add(new BasicNameValuePair("uus", username));
+				parameters.add(new BasicNameValuePair("passw", password));
+				for (int i = 1; i < params.length; i++) parameters.add(params[i]);
 				
-				String s = "POSN" + 
-					encodeString(username) + " " + 
-					encodeString(password) + " " + 
-					encodeString(params[0]) + " " + 
-					encodeString(params[1]) + " " + 
-					params[3] + " " + params[4] + " " + f.length();
-					
-				client.sendMessage(s);
-					
-				try {
-					Thread.sleep(1000);
-				} catch (InterruptedException e) {
-				}
-				
-				FileInputStream fs;
-				try {
-					fs = new FileInputStream(this.sharep);
-				
-					byte data[] = new byte[1024];
-		            int count;
-		            while ((count = fs.read(data)) != -1) {
-		                client.sendData(data, count);
-		            }
-				} catch (FileNotFoundException e) {
-					
-				} catch (IOException e) {
+			    entity = new MultipartEntity(HttpMultipartMode.BROWSER_COMPATIBLE);
 
-				}
+			    File file = new File(params[0].getValue());
+			    ContentBody encFile = new FileBody(file,"image/jpg");
+			    entity.addPart("images", encFile);
+			    
+			    for(NameValuePair p: parameters) {
+			    	entity.addPart(p.getName(), new StringBody(p.getValue()));
+			    }
+			    
+			    httppost.setEntity(entity);
+
+			    ResponseHandler<String> responsehandler = new BasicResponseHandler();
+			    String line = httpclient.execute(httppost, responsehandler);
 				
-				String response = client.readLine();
-				if (response == null)
+				if (line == null)
 					return false;
 				
-				this.pin = (NewsPin) parseGetResponse(response);
+				this.pin = (NewsPin) parseGetResponse(line);
 				if (this.pin == null)
 					return false;
-
-				client.close();
+				
 				return true;
+				
+			} catch (ClientProtocolException ex) {
+				// Problema com a requisição
+			} catch (IOException ex) {
+				// Problema com a conexão
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				if (reader != null) {
+					try {
+						reader.close();
+					} catch (Exception ex) {
+						// Não importa
+					}
+					reader = null;
+				}
 			}
+			
+			return false;
 		}
 
 		@Override
@@ -602,36 +764,71 @@ public class UnilinkDB {
 	// -----------------------------------------------------
 	// Tarefa assíncrona compartilhar noticia
 	// -----------------------------------------------------
-	public class LongMark extends AsyncTask<String, Void, Boolean> {
+	public class LongMark extends AsyncTask<NameValuePair, Void, Boolean> {
 
 		private MarkerPin pin;
 
 		@Override
-		protected Boolean doInBackground(String... params) {
-			synchronized (client) {
+		protected Boolean doInBackground(NameValuePair... params) {
+			
+			HttpClient httpclient = null;
+			HttpPost httppost = null;
+			HttpResponse response = null;
+			HttpEntity entity = null;
+			InputStreamReader stream = null;
+			BufferedReader reader = null;
+			
+			try {
 				
-				if (!client.open())
+				httpclient = new DefaultHttpClient();
+				httppost = new HttpPost(serveraddr);
+				
+				List<NameValuePair> parameters = new ArrayList<NameValuePair>();
+				parameters.add(new BasicNameValuePair("cmd","POSM"));
+				parameters.add(new BasicNameValuePair("uus", username));
+				parameters.add(new BasicNameValuePair("passw", password));
+				for (NameValuePair p : params) parameters.add(p);
+				httppost.setEntity(new UrlEncodedFormEntity(parameters));
+				
+				response = httpclient.execute(httppost);
+				entity = response.getEntity();
+				stream = new InputStreamReader(entity.getContent());
+				reader = new BufferedReader(stream);
+				StringBuilder total = new StringBuilder();
+				String line;
+				
+				while ((line = reader.readLine()) != null) {
+				    total.append(line);
+				}
+				line = total.toString();
+				
+				if (line == null)
 					return false;
 				
-				String s = "POSM" + 
-					encodeString(username) + " " + 
-					encodeString(password) + " " + 
-					params[0] + " " + params[1] + " " + 
-					params[2] + " " + params[3];
-					
-				client.sendMessage(s);
-				
-				String response = client.readLine();
-				if (response == null)
-					return false;
-				
-				this.pin = (MarkerPin) parseGetResponse(response);
+				this.pin = (MarkerPin) parseGetResponse(line);
 				if (this.pin == null)
 					return false;
 
-				client.close();
 				return true;
+				
+			} catch (ClientProtocolException ex) {
+				// Problema com a requisição
+			} catch (IOException ex) {
+				// Problema com a conexão
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				if (reader != null) {
+					try {
+						reader.close();
+					} catch (Exception ex) {
+						// Não importa
+					}
+					reader = null;
+				}
 			}
+			
+			return false;
 		}
 
 		@Override
