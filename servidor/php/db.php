@@ -1,8 +1,7 @@
-<!--
-By Miguel
--->
-
 <?php
+
+// By Miguel
+
 class SQL{
   var $host,$user,$pass,$base;
   var $cn,$db;

@@ -120,8 +120,11 @@ function post_news( $sql, $username, $password, $nname, $ntext, $lat, $lon, $ima
 
 		$uid = $sql->insert( "NEWS", array("uus", "date", "name", "text", "lat", "lon", "upvt", "dnvt"), array($uus, $utcd['sec'], $nname, $ntext, $lat, $lon, "0", "0") );
 		if($image){
-			$filename = $uid . ".jpg";
-			move_uploaded_file($filename, $image);
+			$filename = "img/" . $uid . ".jpg";
+            error_log("NEWS Uploading " . $image . " ($filename) from " . $_SERVER['REMOTE_ADDR'] . "\n", 3, "conamb.log");
+			if (!move_uploaded_file($image, $filename)) {
+                error_log("NEWS Invalid File sent from " . $_SERVER['REMOTE_ADDR'] . "\n", 3, "conamb.log");
+            }
 		}
 
 		error_log("NEWS " . $uid . " inserted from " . $_SERVER['REMOTE_ADDR'] . "\n", 3, "conamb.log");
@@ -148,6 +151,8 @@ function post_marker( $sql, $username, $password, $type, $icon, $lat, $lon ){
  * Envia uma string ao cliente.
  */
 function send ($str) {
+    error_log("[SEND] Sending " . $str . " to " . $_SERVER['REMOTE_ADDR'] . "\n", 3, "conamb.log");
+    
     echo $str;
 }
 

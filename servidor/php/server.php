@@ -2,7 +2,8 @@
 include_once 'db.php';
 include_once 'unicli.php';
 
-$sql = new SQL( "localhost", "conamb", "conamb123", "conamb" );
+//$sql = new SQL( "localhost", "conamb", "conamb123", "conamb" );
+$sql = new SQL("localhost", "mc536_write", "bQEqHGcBCa8NHydv", "conamb");
 $sql->connect();
 
 /*
@@ -45,7 +46,12 @@ case "POSM":
     break;
 
 case "POSN":
-	post_news( $sql, $_POST["uus"], $_POST["passw"], $_POST["name"], $_POST["text"],  $_POST["lat"], $_POST["lon"], $_FILES['image']['name'] );
+	post_news( $sql, $_POST["uus"], $_POST["passw"], $_POST["name"], $_POST["text"],  $_POST["lat"], $_POST["lon"], $_FILES['image']['tmp_name'] );
+
+    if ($_FILES['image']['name']) {
+        error_log("Uploaded image: " . $_FILES['image']['name'] . " " . $_FILES['image']['type']  .  " " . $_FILES['image']['tmp_name'] .  " " . $_FILES['image']['error'] . " " .  $_FILES['image']['size']. "\n", 3, "conamb.log");
+    }
+    
     break;
 }
 
