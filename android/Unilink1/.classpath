@@ -4,5 +4,12 @@
 	<classpathentry kind="src" path="gen"/>
 	<classpathentry kind="con" path="com.android.ide.eclipse.adt.ANDROID_FRAMEWORK"/>
 	<classpathentry kind="con" path="com.android.ide.eclipse.adt.LIBRARIES"/>
+	<classpathentry kind="lib" path="D:/Projects/Git/be310-conamb/android/Unilink1/libs/commons-codec-1.6.jar"/>
+	<classpathentry kind="lib" path="D:/Projects/Git/be310-conamb/android/Unilink1/libs/commons-logging-1.1.1.jar"/>
+	<classpathentry kind="lib" path="D:/Projects/Git/be310-conamb/android/Unilink1/libs/fluent-hc-4.2.5.jar"/>
+	<classpathentry kind="lib" path="D:/Projects/Git/be310-conamb/android/Unilink1/libs/httpclient-4.2.5.jar"/>
+	<classpathentry kind="lib" path="D:/Projects/Git/be310-conamb/android/Unilink1/libs/httpclient-cache-4.2.5.jar"/>
+	<classpathentry kind="lib" path="D:/Projects/Git/be310-conamb/android/Unilink1/libs/httpcore-4.2.4.jar"/>
+	<classpathentry kind="lib" path="D:/Projects/Git/be310-conamb/android/Unilink1/libs/httpmime-4.2.5.jar"/>
 	<classpathentry kind="output" path="bin/classes"/>
 </classpath>

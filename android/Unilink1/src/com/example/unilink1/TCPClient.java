@@ -9,11 +9,11 @@ import java.net.UnknownHostException;
 
 public class TCPClient {
 	
-	public final static String hostname = "192.168.1.103";
+	public final static String hostname = "caianbene.no-ip.org";
 	public final static int hostport = 3136;
 	public final static int hostportd = 3137;
 	
-	private final static int TIMEOUT = 4000;
+	private final static int TIMEOUT = 10000;
 	
 	private Socket clientSocket = null;
 	private OutputStream writeStream = null;
@@ -40,15 +40,23 @@ public class TCPClient {
 	}
 	
 	public Boolean sendMessage(String message) {
-		try {
-			byte[] bmessage = message.getBytes("UTF8");
-			this.writeStream.write(bmessage);
-			return true;
-		} catch (UnsupportedEncodingException e) {
-			return false; 
-		} catch (IOException e) {
-			return false;
+		int retry = 5;
+		for (int i = 0; i < retry; i++) {
+			try {
+				//message = message + "\n";
+				byte[] bmessage = message.getBytes("UTF8");
+				this.writeStream.write(bmessage);
+				Thread.sleep(100);
+				return true;
+			} catch (UnsupportedEncodingException e) {
+				return false; 
+			} catch (IOException e) {
+				continue;
+			} catch (InterruptedException e) {
+				return false;
+			}
 		}
+		return false;
 	}
 	
 	public Boolean sendData(byte[] data, int count) {
