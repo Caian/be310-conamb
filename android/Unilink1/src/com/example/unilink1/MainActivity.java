@@ -175,30 +175,34 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 			double latt = vr.latLngBounds.northeast.latitude;
 			double lont = vr.latLngBounds.southwest.longitude;
 			
-			if (latf != 0.0 || lonf != 0.0 || latt != 0.0 || lont != 0.0)
-			{
-				if (latf > latt) {
-					double t = latt;
-					latt = latf;
-					latf = t;
-				}
-				
-				if (lonf > lont) {
-					double t = lont;
-					lont = lonf;
-					lonf = t;
-				}
-				
-				MainActivity.locfrom = new LatLng(latf, lonf);
-				MainActivity.locto = new LatLng(latt, lont);
-				
-				UnilinkDB db = UnilinkDB.getDatabase();
-				db.updateNear(
-						MainActivity.locfrom.latitude, 
-						MainActivity.locfrom.longitude, 
-						MainActivity.locto.latitude,
-						MainActivity.locto.longitude);
+			if (latf == 0.0 && lonf == 0.0 && latt == 0.0 && lont == 0.0) {
+				latf = MainActivity.locfrom.latitude;
+				lonf = MainActivity.locfrom.longitude;
+				latt = MainActivity.locto.latitude;
+				lont = MainActivity.locto.longitude;
 			}
+			
+			if (latf > latt) {
+				double t = latt;
+				latt = latf;
+				latf = t;
+			}
+			
+			if (lonf > lont) {
+				double t = lont;
+				lont = lonf;
+				lonf = t;
+			}
+				
+			MainActivity.locfrom = new LatLng(latf, lonf);
+			MainActivity.locto = new LatLng(latt, lont);
+			
+			UnilinkDB db = UnilinkDB.getDatabase();
+			db.updateNear(
+					MainActivity.locfrom.latitude, 
+					MainActivity.locfrom.longitude, 
+					MainActivity.locto.latitude,
+					MainActivity.locto.longitude);
 			
 			try {
 				FileOutputStream fos = openFileOutput(LAST_LOCATION, 
