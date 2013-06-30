@@ -1,6 +1,7 @@
 package com.example.unilink1;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -105,13 +106,12 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 			// Nada...
 		}
 	    
+	    File f = new File(getExternalFilesDir(null), DUMMYFILE);
 	    try {
-			FileOutputStream fos = openFileOutput(DUMMYFILE, 
-					Context.MODE_PRIVATE);
-			PrintStream s = new PrintStream(fos);
-			s.close();
-		} catch (FileNotFoundException e) {
-			// Nada...
+			f.createNewFile();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
 	

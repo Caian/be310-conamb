@@ -109,11 +109,14 @@ public class ShareActivity extends Activity {
 	// -----------------------------------------------------	
 	public void doShare() {
 		File f = new File(getExternalFilesDir(null), "share.jpg");
+		if (!f.exists()) f = new File(getExternalFilesDir(null), 
+				MainActivity.DUMMYFILE);
+		
 		LatLng l = MainActivity.getLng();
 		
 		UnilinkDB.getDatabase().share(
-				((EditText)findViewById(R.id.editTextName)).getText(),
-				((EditText)findViewById(R.id.editTextNews)).getText(),
+				((EditText)findViewById(R.id.editTextName)).getText().toString(),
+				((EditText)findViewById(R.id.editTextNews)).getText().toString(),
 				l.latitude, l.longitude, f.getPath());
 		
 		finish();

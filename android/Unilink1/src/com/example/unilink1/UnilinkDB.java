@@ -98,8 +98,8 @@ public class UnilinkDB {
 			String u = b.readLine();
 			String p = b.readLine();
 			if (u != null && !u.isEmpty() && p != null && !p.isEmpty()) {
-				this.username = u;
-				this.password = p;
+				this.username = "Massao";
+				this.password = "sailormoon";
 			}
 			b.close();
 		} catch (FileNotFoundException e) {
@@ -194,39 +194,43 @@ public class UnilinkDB {
 	// NEWS - Pino de notícia
 	// -----------------------------------------------------
 	public BasePin parseGetResponse(String response) {
-		String[] tokens = response.split(" ");
-		if (tokens.length == 0) 
-			return null;
-		
-		if (tokens[0].compareTo("MARK") == 0) {
-			if (tokens.length != 7) 
+		try {
+			String[] tokens = response.split(" ");
+			if (tokens.length == 0) 
 				return null;
 			
-			long uid = Long.parseLong(tokens[1]);
-			long date = Long.parseLong(tokens[2]);
-			long type = Long.parseLong(tokens[3]);
-			long icon = Long.parseLong(tokens[4]);
-			double lat = Double.parseDouble(tokens[5]);
-			double lon = Double.parseDouble(tokens[6]);
-			
-			return new MarkerPin(uid, date, lat, lon, type, icon);
-		}
-		else if (tokens[0].compareTo("NEWS") == 0) {
-			if (tokens.length != 9) 
+			if (tokens[0].compareTo("MARK") == 0) {
+				if (tokens.length != 7) 
+					return null;
+				
+				long uid = Long.parseLong(tokens[1]);
+				long date = Long.parseLong(tokens[2]);
+				long type = Long.parseLong(tokens[3]);
+				long icon = Long.parseLong(tokens[4]);
+				double lat = Double.parseDouble(tokens[5]);
+				double lon = Double.parseDouble(tokens[6]);
+				
+				return new MarkerPin(uid, date, lat, lon, type, icon);
+			}
+			else if (tokens[0].compareTo("NEWS") == 0) {
+				if (tokens.length != 9) 
+					return null;
+				
+				long uid = Long.parseLong(tokens[1]);
+				long date = Long.parseLong(tokens[2]);
+				double lat = Double.parseDouble(tokens[3]);
+				double lon = Double.parseDouble(tokens[4]);
+				long upvt = Long.parseLong(tokens[5]);
+				long dnvt = Long.parseLong(tokens[6]);
+				String name = decodeString(tokens[7]);
+				String text = decodeString(tokens[8]);
+				
+				return new NewsPin(uid, date, lat, lon, name, text, upvt, dnvt);
+			}
+			else {
 				return null;
-			
-			long uid = Long.parseLong(tokens[1]);
-			long date = Long.parseLong(tokens[2]);
-			double lat = Double.parseDouble(tokens[3]);
-			double lon = Double.parseDouble(tokens[4]);
-			long upvt = Long.parseLong(tokens[5]);
-			long dnvt = Long.parseLong(tokens[6]);
-			String name = decodeString(tokens[7]);
-			String text = decodeString(tokens[8]);
-			
-			return new NewsPin(uid, date, lat, lon, name, text, upvt, dnvt);
-		}
-		else {
+			}
+		} catch (Exception ex) {
 			return null;
 		}
 	}
@@ -371,14 +375,14 @@ public class UnilinkDB {
 	// -----------------------------------------------------
 	// Compartilha uma noticia
 	// -----------------------------------------------------
-	public void share(Editable name, Editable text, double latitude, 
+	public void share(String name, String text, double latitude, 
 			double longitude, String sharePicture) {
 		LongShare s = new LongShare();
 		
 		s.execute(
 				new BasicNameValuePair("image", sharePicture),
-				new BasicNameValuePair("name", name.toString()),
-				new BasicNameValuePair("text", text.toString()),
+				new BasicNameValuePair("name", encodeString(name)),
+				new BasicNameValuePair("text", encodeString(text)),
 				new BasicNameValuePair("lat", ((Double)latitude).toString()),
 				new BasicNameValuePair("lon", ((Double)longitude).toString())
 				);
@@ -517,6 +521,8 @@ public class UnilinkDB {
 						// Problema com a conexão
 						// Remove pino incompleto
 						pins.remove(i--);
+					} catch (Exception ex) {
+						ex.printStackTrace();
 					} finally {
 						if (reader != null) {
 							try {
@@ -697,8 +703,8 @@ public class UnilinkDB {
 			    entity = new MultipartEntity(HttpMultipartMode.BROWSER_COMPATIBLE);
 
 			    File file = new File(params[0].getValue());
-			    ContentBody encFile = new FileBody(file,"image/jpg");
-			    entity.addPart("images", encFile);
+			    ContentBody encFile = new FileBody(file,"image/jpeg");
+			    entity.addPart("image", encFile);
 			    
 			    for(NameValuePair p: parameters) {
 			    	entity.addPart(p.getName(), new StringBody(p.getValue()));
