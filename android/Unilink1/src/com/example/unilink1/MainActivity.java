@@ -47,6 +47,8 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 	private GoogleMap map;
 	private LocationManager locationManager;
 	private static LatLng location;
+	private static LatLng locfrom;
+	private static LatLng locto;
 	private static PinListener pinListener = null;
 	private static Context context = null;
 	private Boolean autoMove = true;
@@ -96,14 +98,22 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 			BufferedReader b = new BufferedReader(s);
 			double lat = Double.parseDouble(b.readLine());
 			double lon = Double.parseDouble(b.readLine());
+			double latf = Double.parseDouble(b.readLine());
+			double lonf = Double.parseDouble(b.readLine());
+			double latt = Double.parseDouble(b.readLine());
+			double lont = Double.parseDouble(b.readLine());
 			b.close();
 			MainActivity.location = new LatLng(lat, lon);
+			MainActivity.locfrom = new LatLng(latf, lonf);
+			MainActivity.locto = new LatLng(latt, lont);
 			changeLocation(MainActivity.location);
 			moveToLocation();
 		} catch (FileNotFoundException e) {
 			// Nada...
 		} catch (IOException e) {
 			// Nada...
+		} catch (Exception e) {
+			// Nay
 		}
 	    
 	    File f = new File(getExternalFilesDir(null), DUMMYFILE);
@@ -160,13 +170,35 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 			MainActivity.location = arg0;
 			
 			VisibleRegion vr = this.map.getProjection().getVisibleRegion();
-			double left = vr.latLngBounds.southwest.longitude;
-			double top = vr.latLngBounds.northeast.latitude;
-			double right = vr.latLngBounds.northeast.longitude;
-			double bottom = vr.latLngBounds.southwest.latitude;
+			double latf = vr.latLngBounds.southwest.latitude;
+			double lonf = vr.latLngBounds.northeast.longitude;
+			double latt = vr.latLngBounds.northeast.latitude;
+			double lont = vr.latLngBounds.southwest.longitude;
 			
-			UnilinkDB db = UnilinkDB.getDatabase();
-			db.updateNear(top, left, bottom, right);
+			if (latf != 0.0 || lonf != 0.0 || latt != 0.0 || lont != 0.0)
+			{
+				if (latf > latt) {
+					double t = latt;
+					latt = latf;
+					latf = t;
+				}
+				
+				if (lonf > lont) {
+					double t = lont;
+					lont = lonf;
+					lonf = t;
+				}
+				
+				MainActivity.locfrom = new LatLng(latf, lonf);
+				MainActivity.locto = new LatLng(latt, lont);
+				
+				UnilinkDB db = UnilinkDB.getDatabase();
+				db.updateNear(
+						MainActivity.locfrom.latitude, 
+						MainActivity.locfrom.longitude, 
+						MainActivity.locto.latitude,
+						MainActivity.locto.longitude);
+			}
 			
 			try {
 				FileOutputStream fos = openFileOutput(LAST_LOCATION, 
@@ -174,6 +206,10 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 				PrintStream s = new PrintStream(fos);
 				s.println(MainActivity.location.latitude);
 				s.println(MainActivity.location.longitude);
+				s.println(MainActivity.locfrom.latitude);
+				s.println(MainActivity.locfrom.longitude);
+				s.println(MainActivity.locto.latitude);
+				s.println(MainActivity.locto.longitude);
 				s.close();
 			} catch (FileNotFoundException e) {
 				// Nada...
