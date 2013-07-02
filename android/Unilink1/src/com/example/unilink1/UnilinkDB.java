@@ -1,20 +1,26 @@
 package com.example.unilink1;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
+import java.net.URL;
+import java.net.URLConnection;
 import java.security.InvalidAlgorithmParameterException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Scanner;
 import java.util.Vector;
+import java.util.logging.Logger;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -55,7 +61,9 @@ public class UnilinkDB {
 	
 	// Variáveis -------------------------------------------
 	
-	private final String serveraddr = "http://atum.caco.ic.unicamp.br/be310-conamb/servidor/php/server.php";
+	public final static String serverbaseaddr = "http://atum.caco.ic.unicamp.br/be310-conamb/servidor/php/";
+	public final static String serveraddr = serverbaseaddr + "server.php";
+	public final static String serverimg = serverbaseaddr + "img/";
 	private final String USERFILE = "user.info";
 	
 	private HashMap<Marker, BasePin> hpins;
@@ -98,8 +106,8 @@ public class UnilinkDB {
 			String u = b.readLine();
 			String p = b.readLine();
 			if (u != null && !u.isEmpty() && p != null && !p.isEmpty()) {
-				this.username = "Massao";
-				this.password = "sailormoon";
+				this.username = u;
+				this.password = p;
 			}
 			b.close();
 		} catch (FileNotFoundException e) {
@@ -129,6 +137,17 @@ public class UnilinkDB {
 	// Atualiza os pinos próximos a uma latitude/longitude
 	// -----------------------------------------------------
 	public void updateNear(double latfrom, double lonfrom, double latto, double lonto) {
+		
+		double clat = (latfrom + latto) / 2.0;
+		double clon = (lonfrom + lonto) / 2.0;
+		
+		double dlat = (latto - latfrom);
+		double dlon = (lonto - lonfrom);
+		
+		latfrom = clat - dlat;
+		lonfrom = clon - dlon;
+		latto = clat + dlat;
+		lonto = clon + dlon;
 		
 		// Up we go...
 		LongUpdateNearPins updater = new LongUpdateNearPins();
@@ -544,6 +563,8 @@ public class UnilinkDB {
 		@Override
 		protected void onPostExecute(Boolean result) {
 			
+			Vector<Long> uids = new Vector<Long>(this.pins.size());
+			
 			if (!result)
 				return;
 			
@@ -554,10 +575,18 @@ public class UnilinkDB {
 			if (listener != null) {
 				for (int i = 0; i < this.pins.size(); i++) {
 					BasePin p = this.pins.get(i);
-					Marker m = listener.OnNewPin(p);
-					p.setMarker(m);
-					hpins.put(m, p);
-					vpins.put((int)p.getUid(), p);
+					BasePin old;
+					
+					if ((old = vpins.get((int)p.getUid())) != null) {
+						p.setMarker(old.getMarker());
+						updatePin(p);
+					} else {
+						uids.add(p.getUid());
+						Marker m = listener.OnNewPin(p);
+						p.setMarker(m);
+						hpins.put(m, p);
+						vpins.put((int)p.getUid(), p);
+					}
 				}
 			}
 		}
@@ -618,6 +647,8 @@ public class UnilinkDB {
 				parameters.add(new BasicNameValuePair("cmd",cmd));
 				parameters.add(new BasicNameValuePair("uus", username));
 				parameters.add(new BasicNameValuePair("passw", password));
+				parameters.add(new BasicNameValuePair("uid", params[1].toString()));
+				httppost.setEntity(new UrlEncodedFormEntity(parameters));
 				
 				response = httpclient.execute(httppost);
 				entity = response.getEntity();
@@ -631,7 +662,7 @@ public class UnilinkDB {
 				}
 				line = total.toString();
 
-				if (line == null)
+				if (line == null || line.isEmpty())
 					return false;
 				
 				NewsPin pin = (NewsPin) parseGetResponse(line);
@@ -666,7 +697,8 @@ public class UnilinkDB {
 
 		@Override
 		protected void onPostExecute(final Boolean success) {
-			updatePin(this.old);
+			if (success)
+				updatePin(this.old);
 		}
 	}
 
@@ -702,7 +734,8 @@ public class UnilinkDB {
 				
 			    entity = new MultipartEntity(HttpMultipartMode.BROWSER_COMPATIBLE);
 
-			    File file = new File(params[0].getValue());
+			    this.sharep = params[0].getValue();
+			    File file = new File(this.sharep);
 			    ContentBody encFile = new FileBody(file,"image/jpeg");
 			    entity.addPart("image", encFile);
 			    
@@ -715,7 +748,7 @@ public class UnilinkDB {
 			    ResponseHandler<String> responsehandler = new BasicResponseHandler();
 			    String line = httpclient.execute(httppost, responsehandler);
 				
-				if (line == null)
+				if (line == null || line.isEmpty())
 					return false;
 				
 				this.pin = (NewsPin) parseGetResponse(line);
@@ -758,10 +791,13 @@ public class UnilinkDB {
 					vpins.put((int)p.getUid(), p);
 				}
 				
-				File f = new File(this.sharep);
-				File nf = new File(MainActivity.getContext().
-					getExternalFilesDir(null), this.pin.getUid() + ".jpg");
-				f.renameTo(nf);
+				try {
+					File f = new File(this.sharep);
+					File nf = new File(MainActivity.getContext().
+						getExternalFilesDir(null), this.pin.getUid() + ".jpg");
+					f.renameTo(nf);
+				} catch (Exception ex) {
+				}
 			}
 		}
 	}
@@ -808,7 +844,7 @@ public class UnilinkDB {
 				}
 				line = total.toString();
 				
-				if (line == null)
+				if (line == null || line.isEmpty())
 					return false;
 				
 				this.pin = (MarkerPin) parseGetResponse(line);

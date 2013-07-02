@@ -102,19 +102,27 @@ public class PinLocalStorage {
 	// -----------------------------------------------------
 	public void downloadImages(Vector<BasePin> pins) {
 		Vector<Long> uids = new Vector<Long>();
+		Boolean b;
 		for (int i = 0; i < pins.size(); i++) {
 			BasePin p = pins.get(i);
 			long uid = p.getUid();
 			
-			File f = new File(context.getExternalFilesDir(null), uid + ".jpg");
-			if (f.exists()) continue;
+			if (pins.get(i).getType() != BasePin.CATEGORY_NEWS) {
+				continue;
+			}
 			
-			if (pins.get(i).getType() == BasePin.CATEGORY_NEWS)
-				uids.add(p.getUid());
+			File f = new File(context.getExternalFilesDir(null), uid + ".jpg");
+			if (f.exists()) {
+				continue;
+			}
+			
+			uids.add(p.getUid());
 		}
 		
-		LongDownloadNewsImages d = new LongDownloadNewsImages();
-		d.execute(uids);
+		if (uids.size() > 0) {
+			LongDownloadNewsImages d = new LongDownloadNewsImages();
+			d.execute(uids);
+		}
 	}
 	
 	
@@ -127,23 +135,18 @@ public class PinLocalStorage {
 			for (int i = 0; i < params[0].size(); i++) {
 				try {
 					Long uid = params[0].get(i);
-		            URL url = new URL("http://" + TCPClient.hostname + 
-		            		":" + TCPClient.hostportd + 
-		            		"/be310/conamb/images/" + uid + ".jpg");
+		            URL url = new URL(UnilinkDB.serverimg + uid + ".jpg");
 		            URLConnection connection = url.openConnection();
 		            connection.connect();
 
-		            //int fileLength = connection.getContentLength();
 		            File f = new File(context.getExternalFilesDir(null), uid + ".jpg");
 		            
 		            InputStream input = new BufferedInputStream(url.openStream());
 		            OutputStream output = new FileOutputStream(f);
 	
 		            byte data[] = new byte[1024];
-		            //long total = 0;
 		            int count;
 		            while ((count = input.read(data)) != -1) {
-		                //total += count;
 		                output.write(data, 0, count);
 		            }
 	
