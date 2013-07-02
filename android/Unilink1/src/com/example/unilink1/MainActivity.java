@@ -12,8 +12,10 @@ import java.util.HashMap;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.GoogleMap.OnCameraChangeListener;
 import com.google.android.gms.maps.GoogleMap.OnInfoWindowClickListener;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -31,12 +33,13 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.os.Handler;
 import android.provider.MediaStore;
 import android.support.v4.app.FragmentActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 
-public class MainActivity extends FragmentActivity implements LocationListener, OnInfoWindowClickListener, PinListener {
+public class MainActivity extends FragmentActivity implements LocationListener, OnInfoWindowClickListener, OnCameraChangeListener, PinListener {
 
 	// Variáveis -------------------------------------------
 	
@@ -52,6 +55,8 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 	private static PinListener pinListener = null;
 	private static Context context = null;
 	private Boolean autoMove = true;
+	private Handler updateDispatcher;
+	private Runnable lastUpdate;
 	
 	private final int LOGIN_CODE = 2;
 	private final int LOGIN_REDIRECT = 2 << 8;
@@ -74,6 +79,9 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 		
 		MainActivity.pinListener = this;
 		MainActivity.context = this;
+		
+		this.updateDispatcher = new Handler();
+		this.lastUpdate = null;
 
 		this.map = ((SupportMapFragment)getSupportFragmentManager().findFragmentById(R.id.map))
 		        .getMap();
@@ -84,6 +92,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 	    if (this.map != null) {
 	    	this.map.setInfoWindowAdapter(new PinContentManager(getLayoutInflater()));
 	    	this.map.setOnInfoWindowClickListener(this);
+	    	this.map.setOnCameraChangeListener(this);
 	    }
 	    
 	    PinLocalStorage.getStorage().setContext(this);
@@ -164,64 +173,92 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 	// -----------------------------------------------------
 	// 
 	// -----------------------------------------------------
+	public void updateLocation() {
+		VisibleRegion vr = this.map.getProjection().getVisibleRegion();
+		double latf = vr.latLngBounds.southwest.latitude;
+		double lonf = vr.latLngBounds.northeast.longitude;
+		double latt = vr.latLngBounds.northeast.latitude;
+		double lont = vr.latLngBounds.southwest.longitude;
+		
+		if (latf == 0.0 && lonf == 0.0 && latt == 0.0 && lont == 0.0) {
+			latf = MainActivity.locfrom.latitude;
+			lonf = MainActivity.locfrom.longitude;
+			latt = MainActivity.locto.latitude;
+			lont = MainActivity.locto.longitude;
+		}
+		
+		if (latf > latt) {
+			double t = latt;
+			latt = latf;
+			latf = t;
+		}
+		
+		if (lonf > lont) {
+			double t = lont;
+			lont = lonf;
+			lonf = t;
+		}
+			
+		MainActivity.locfrom = new LatLng(latf, lonf);
+		MainActivity.locto = new LatLng(latt, lont);
+		
+		UnilinkDB db = UnilinkDB.getDatabase();
+		db.updateNear(
+				MainActivity.locfrom.latitude, 
+				MainActivity.locfrom.longitude, 
+				MainActivity.locto.latitude,
+				MainActivity.locto.longitude);
+		
+		try {
+			FileOutputStream fos = openFileOutput(LAST_LOCATION, 
+					Context.MODE_PRIVATE);
+			PrintStream s = new PrintStream(fos);
+			s.println(MainActivity.location.latitude);
+			s.println(MainActivity.location.longitude);
+			s.println(MainActivity.locfrom.latitude);
+			s.println(MainActivity.locfrom.longitude);
+			s.println(MainActivity.locto.latitude);
+			s.println(MainActivity.locto.longitude);
+			s.close();
+		} catch (FileNotFoundException e) {
+			// Nada...
+		}
+	}
+	
+	
+	// -----------------------------------------------------
+	// 
+	// -----------------------------------------------------
 	public void changeLocation(LatLng arg0) {
 		if (arg0 != null) {
 			
 			MainActivity.location = arg0;
-			
-			VisibleRegion vr = this.map.getProjection().getVisibleRegion();
-			double latf = vr.latLngBounds.southwest.latitude;
-			double lonf = vr.latLngBounds.northeast.longitude;
-			double latt = vr.latLngBounds.northeast.latitude;
-			double lont = vr.latLngBounds.southwest.longitude;
-			
-			if (latf == 0.0 && lonf == 0.0 && latt == 0.0 && lont == 0.0) {
-				latf = MainActivity.locfrom.latitude;
-				lonf = MainActivity.locfrom.longitude;
-				latt = MainActivity.locto.latitude;
-				lont = MainActivity.locto.longitude;
-			}
-			
-			if (latf > latt) {
-				double t = latt;
-				latt = latf;
-				latf = t;
-			}
-			
-			if (lonf > lont) {
-				double t = lont;
-				lont = lonf;
-				lonf = t;
-			}
-				
-			MainActivity.locfrom = new LatLng(latf, lonf);
-			MainActivity.locto = new LatLng(latt, lont);
-			
-			UnilinkDB db = UnilinkDB.getDatabase();
-			db.updateNear(
-					MainActivity.locfrom.latitude, 
-					MainActivity.locfrom.longitude, 
-					MainActivity.locto.latitude,
-					MainActivity.locto.longitude);
-			
-			try {
-				FileOutputStream fos = openFileOutput(LAST_LOCATION, 
-						Context.MODE_PRIVATE);
-				PrintStream s = new PrintStream(fos);
-				s.println(MainActivity.location.latitude);
-				s.println(MainActivity.location.longitude);
-				s.println(MainActivity.locfrom.latitude);
-				s.println(MainActivity.locfrom.longitude);
-				s.println(MainActivity.locto.latitude);
-				s.println(MainActivity.locto.longitude);
-				s.close();
-			} catch (FileNotFoundException e) {
-				// Nada...
-			}
-			
+			//updateLocation();
 			if (this.autoMove) 
 				moveToLocation();
 		}
+	}
+	
+	
+	// -----------------------------------------------------
+	// 
+	// -----------------------------------------------------
+	@Override
+	public void onCameraChange(CameraPosition arg0) {
+		
+		// Cancela atualização pendente
+		if (this.lastUpdate != null)
+			this.updateDispatcher.removeCallbacks(this.lastUpdate);
+		
+		this.lastUpdate = new Runnable(){
+
+			@Override
+			public void run() {
+				updateLocation();
+			}
+		};
+		
+		this.updateDispatcher.postDelayed(this.lastUpdate, 5000);
 	}
 
 	

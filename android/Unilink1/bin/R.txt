@@ -29,9 +29,11 @@ int drawable ic_mark_upvt 0x7f020007
 int drawable ic_mark_upvtg 0x7f020008
 int drawable ic_recl 0x7f020009
 int drawable ic_recl_batt 0x7f02000a
-int drawable ic_recl_light 0x7f02000b
-int drawable ic_trash 0x7f02000c
-int drawable ic_unknown 0x7f02000d
+int drawable ic_recl_chem 0x7f02000b
+int drawable ic_recl_elec 0x7f02000c
+int drawable ic_recl_light 0x7f02000d
+int drawable ic_trash 0x7f02000e
+int drawable ic_unknown 0x7f02000f
 int id ImageViewDislike 0x7f050010
 int id action_forgot_password 0x7f05001a
 int id action_mark 0x7f05001c

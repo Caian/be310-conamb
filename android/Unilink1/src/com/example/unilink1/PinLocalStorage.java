@@ -83,7 +83,9 @@ public class PinLocalStorage {
 			case 1: r = R.drawable.ic_trash; break;
 			case 2: r = R.drawable.ic_recl; break;
 			case 3: r = R.drawable.ic_recl_batt; break;
-			case 4: r = R.drawable.ic_recl_light; break;
+			case 4: r = R.drawable.ic_recl_elec; break;
+			case 5: r = R.drawable.ic_recl_light; break;
+			case 6: r = R.drawable.ic_recl_chem; break;
 		}
 		
 		return BitmapDescriptorFactory.fromResource(r);
