@@ -376,8 +376,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
 		UnilinkDB db;
-	    switch (item.getItemId()) {
-	    case R.id.action_share:
+	    if (item.getItemId() == R.id.action_share) {
 	    	db = UnilinkDB.getDatabase();
 	    	
 	    	if (!db.isValidated()) {
@@ -386,7 +385,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 	    		doShare();
 	    	}
 	        return true;
-	    case R.id.action_mark:
+	    } else if (item.getItemId() == R.id.action_mark) { 
 	    	db = UnilinkDB.getDatabase();
 	    	
 	    	if (!db.isValidated()) {
@@ -395,10 +394,17 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 	    		doMark();
 	    	}
 	        return true;
-	    case R.id.action_settings:
+	    } else if (item.getItemId() == R.id.action_settings) {
 	    	//doSettings();
 	        return true;
-	    default:
+	    } else if (item.getItemId() == R.id.action_follow) {
+	    	this.autoMove = true;
+	    	moveToLocation();
+	    	return true;
+	    } else if (item.getItemId() == R.id.action_unfollow) {
+	    	this.autoMove = false;
+	    	return true;
+	    } else {
 	        return super.onOptionsItemSelected(item);
 	    }
 	}
